@@ -1,7 +1,7 @@
 import React from 'react';
 import { ProductCamera } from '../../components/camera/ProductCamera';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useSelector } from 'react-redux';
+import { TypedUseSelectorHook, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 
 type Props = {

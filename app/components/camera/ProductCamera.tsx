@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import { Camera, CameraType } from 'expo-camera';
+import { Camera,CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Text, IconButton, ActivityIndicator } from 'react-native-paper';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { processImageOCR, extractProductInfo } from '../../services/vision/visionService';
@@ -20,7 +20,8 @@ interface ProductCameraProps {
 export const ProductCamera = ({ navigation, onTextDetected, onCapture }: ProductCameraProps) => {
   // State for camera permissions
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const cameraRef = useRef<Camera | null>(null);
+  const [facing, setFacing] = useState<CameraType>('back');
+  const cameraRef = useRef<CameraView>(null);
   const dispatch = useDispatch();
   
   // Get state from Redux
@@ -52,7 +53,8 @@ export const ProductCamera = ({ navigation, onTextDetected, onCapture }: Product
         dispatch(setLoading(true));
         
         // Take picture
-        const photo = await cameraRef.current.takePictureAsync();
+        const options = { quality: 0.5, base64: true };
+        const photo = await cameraRef.current.takePictureAsync(options);
         
         // Optimize image for processing
         const optimizedImage = await ImageManipulator.manipulateAsync(
@@ -112,9 +114,10 @@ export const ProductCamera = ({ navigation, onTextDetected, onCapture }: Product
     return <Text>No access to camera. Please enable camera permissions.</Text>;
   }
 
+
   return (
     <View style={styles.container}>
-      <Camera style={styles.camera} ref={cameraRef} type={CameraType.back}>
+      <CameraView style={styles.camera} ref={cameraRef} facing={facing}>
         <View style={styles.buttonContainer}>
           {loading ? (
             <ActivityIndicator size="large" color="#fff" />
@@ -124,7 +127,7 @@ export const ProductCamera = ({ navigation, onTextDetected, onCapture }: Product
             </TouchableOpacity>
           )}
         </View>
-      </Camera>
+      </CameraView>
     </View>
   );
 };

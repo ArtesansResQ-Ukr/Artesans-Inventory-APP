@@ -25,7 +25,8 @@ export const getToken = async (): Promise<string | null> => {
 
 /**
  * Removes JWT token from storage (used for logout)
- */
-export const removeToken = async (): Promise<void> => {
+ * export const removeToken = async (): Promise<void> => {
   await storage.removeItem(TOKEN_KEY);
 }; 
+ */
+

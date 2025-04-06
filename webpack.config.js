@@ -122,6 +122,12 @@ module.exports = async function(env, argv) {
     );
   });
 
+  if (!config.devServer) {
+    config.devServer = {};
+  }
+
+  config.devServer.port = 8000;
+
   return config;
 }; 
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Button, Text, Card } from 'react-native-paper';
+import { Button, Card } from 'react-native-paper';
+import { Text } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { setIsNewProduct } from '../../store/slices/ocrSlice';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';

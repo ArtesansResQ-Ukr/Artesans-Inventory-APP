@@ -18,7 +18,7 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
         return;
       }
       await storeToken(token);
-      navigation.replace('Home'); // or whatever your main screen is named
+      navigation.replace('ProductTypeSelection'); // or whatever your main screen is named
     } catch (err) {
       setError('Failed to store token');
       console.error('Login error:', err);

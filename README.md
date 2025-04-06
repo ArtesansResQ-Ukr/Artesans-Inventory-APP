@@ -561,6 +561,12 @@ const loginUrl = `${API_URL}${AUTH_ENDPOINT}`;
 
 #### For development
 ```bash
+#install
+pip install -r requirements.tx
+npm install --legacy-peer-deps
+#Start the backend with correct host
+uvicorn src.main:app --reload --host 0.0.0.0
+
 # Start the Expo development server
 expo start
 

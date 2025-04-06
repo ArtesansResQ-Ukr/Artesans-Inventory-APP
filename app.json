@@ -33,7 +33,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Inventory Frontend to access your camera to scan product labels."
+          "cameraPermission": "Allow Inventory APP to access your camera to scan product labels."
         }
       ]
     ]

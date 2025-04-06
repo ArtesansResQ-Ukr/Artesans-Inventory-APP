@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { getToken } from '../services/auth/tokenService';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { getToken } from '../services/auth/tokenService';
+import { NavigationContainer } from '@react-navigation/native';
+
 
 //Navigation: Controls screen flow
 
 // Import screens
-import { LoginScreen } from '../screens/LoginScreen';
+import { LoginScreen } from '../screens/auth/LoginScreen';
 import ProductTypeSelection from '../screens/products/ProductTypeSelection';
-import camera_screen from '../screens/camera/CameraScreen';
+import CameraScreen from '../screens/camera/CameraScreen';
 import TestCameraScreen from '../screens/camera/TestCameraScreen';
 import NewProductReviewScreen from '../screens/products/NewProductReviewScreen';
 import ExistingProductMatchScreen from '../screens/products/ExistingProductMatchScreen';
 
-const Stack = createStackNavigator();
-const NativeStack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator();
 
 /**
  * Main application navigator

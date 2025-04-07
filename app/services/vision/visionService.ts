@@ -1,8 +1,9 @@
 import * as FileSystem from 'expo-file-system';
 import { GOOGLE_CLOUD_VISION_API_KEY } from '@env';
 import axios, { AxiosError } from 'axios';
-import { API_URL } from '@env';
+import apiClient from '../api/apiClient';
 import { getToken } from '../auth/tokenService';
+
 
 /**
  * Process image with Google Vision API to extract text
@@ -51,8 +52,8 @@ export const extractProductInfo = async (ocrText: string): Promise<any | null> =
 
     console.log('Sending OCR request with token:', token.substring(0, 15) + '...');
     
-    const response = await axios.post(
-      `${API_URL}/products/extract`, 
+    const response = await apiClient.post(
+      `/products/extract`, 
       { ocr_text: ocrText },
       {
         headers: {

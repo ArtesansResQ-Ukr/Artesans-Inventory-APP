@@ -40,6 +40,21 @@ const ProductTypeSelection = ({ navigation }: Props) => {
           <Text>Scan an existing product to update quantity</Text>
         </Card.Content>
       </Card>
+
+      <Card style={styles.card} onPress={() => navigation.navigate('ProductList')}>
+        <Card.Content>
+          <Text style={styles.cardTitle}>View Products</Text>
+          <Text>Browse and search your inventory</Text>
+        </Card.Content>
+      </Card>
+
+      <Card style={styles.card} onPress={() => navigation.navigate('ProductHistory')}>
+        <Card.Content>
+          <Text style={styles.cardTitle}>View Activity History</Text>
+          <Text>View product activity history</Text>
+        </Card.Content>
+      </Card>
+    
     </View>
   );
 };

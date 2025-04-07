@@ -13,6 +13,8 @@ import CameraScreen from '../screens/camera/CameraScreen';
 import TestCameraScreen from '../screens/camera/TestCameraScreen';
 import NewProductReviewScreen from '../screens/products/NewProductReviewScreen';
 import ExistingProductMatchScreen from '../screens/products/ExistingProductMatchScreen';
+import ProductListScreen from '../screens/products/ProductListScreen';
+import ProductHistoryScreen from '../screens/products/ProductHistoryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -87,6 +89,16 @@ export const AppNavigator = () => {
               name="ExistingProductMatch"
               component={ExistingProductMatchScreen}
               options={{ title: 'Match Product' }}
+            />
+            <Stack.Screen
+              name="ProductList"
+              component={ProductListScreen}
+              options={{ title: 'Product Inventory' }}
+            />
+            <Stack.Screen
+              name="ProductHistory"
+              component={ProductHistoryScreen}
+              options={{ title: 'Product History' }}
             />
           </>
         )}

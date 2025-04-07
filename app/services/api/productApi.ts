@@ -22,9 +22,9 @@ interface Product {
  */
 export const convertOcrToProduct = async (ocrText: string): Promise<any> => {
   try {
-    console.log('OCR text to send:', ocrText, typeof ocrText);
     const safeOcrText = ocrText.replace(/\n/g, ' ').trim();
     console.log('OCR text to send:', safeOcrText, typeof safeOcrText);
+
     const response = await apiClient.post(`/products/extract`, { 
       ocr_text: safeOcrText
     });
@@ -129,3 +129,42 @@ export const decreaseProductQuantity = async (uuid: string, quantity: number) =>
     throw error;
   }
 }; 
+
+/**
+ * Fetches all products with optional filters
+ * 
+ * @param groupUuid - Optional group UUID to filter by
+ * @param productUuid - Optional product UUID to filter by
+ * @returns Promise with products list
+ */
+export const getProducts = async (groupUuid?: string, productUuid?: string) => {
+  try {
+    const params: Record<string, string> = {};
+    if (groupUuid) params.group_uuid = groupUuid;
+    if (productUuid) params.product_uuid = productUuid;
+    
+    const response = await apiClient.get('/products/view', { params });
+    return response.data.products;
+  } catch (error) {
+    console.error('Failed to fetch products:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches product user history with optional user filter
+ * @param subjectUuid - Optional user UUID to filter by
+ * @returns Promise with product user history
+ */
+export const getProductUserHistory = async (subjectUuid?: string) => {
+  try {
+    const params: Record<string, string> = {};
+    if (subjectUuid) params.subject_uuid = subjectUuid;
+    
+    const response = await apiClient.get('/products/history', { params });
+    return response.data.product_user_history;
+  } catch (error) {
+    console.error('Failed to fetch product history:', error);
+    throw error;
+  }
+};

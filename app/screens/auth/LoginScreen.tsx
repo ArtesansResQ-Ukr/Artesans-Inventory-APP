@@ -1,24 +1,31 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
-import { storeToken } from '../../services/auth/tokenService';
+import { useUser } from '../../contexts/UserContext';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 
 interface LoginScreenProps {
-  navigation: any;
+  navigation: NativeStackNavigationProp<any>;
 }
 
 export const LoginScreen = ({ navigation }: LoginScreenProps) => {
-  const [token, setToken] = useState('');
+  const [tokenInput, setTokenInput] = useState('');
   const [error, setError] = useState('');
+  const { setUserToken } = useUser();
 
   const handleLogin = async () => {
     try {
-      if (!token.trim()) {
+      if (!tokenInput.trim()) {
         setError('Please enter a token');
         return;
       }
-      await storeToken(token);
-      navigation.replace('ProductTypeSelection'); // or whatever your main screen is named
+      
+      // Update token in context
+      await setUserToken(tokenInput);
+      
+      // Navigation will happen automatically based on conditional rendering
+      // in AppNavigator.tsx due to userToken being updated
     } catch (err) {
       setError('Failed to store token');
       console.error('Login error:', err);
@@ -26,22 +33,29 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>Login</Text>
-      <TextInput
-        label="Enter JWT Token"
-        value={token}
-        onChangeText={setToken}
-        mode="outlined"
-        style={styles.input}
-        multiline
-        numberOfLines={4}
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Button mode="contained" onPress={handleLogin} style={styles.button}>
-        Login
-      </Button>
-    </View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={styles.container}>
+          <Text variant="headlineMedium" style={styles.title}>Login</Text>
+          <TextInput
+            label="Enter JWT Token"
+            value={tokenInput}
+            onChangeText={setTokenInput}
+            mode="outlined"
+            style={styles.input}
+            multiline
+            numberOfLines={4}
+          />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Button mode="contained" onPress={handleLogin} style={styles.button}>
+            Login
+          </Button>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

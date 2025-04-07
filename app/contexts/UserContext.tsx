@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getToken } from '../services/auth/tokenService';
+import { storeToken as saveTokenToStorage } from '../services/auth/tokenService';
 
 interface User {
   id: string;
@@ -12,6 +13,8 @@ interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   loading: boolean;
+  userToken: string | null;
+  setUserToken: (token: string | null) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -19,6 +22,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userToken, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -44,8 +48,20 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeUser();
   }, []);
 
+  const setUserToken = async (token: string | null) => {
+    if (token) {
+      // Save token to secure storage
+      await saveTokenToStorage(token);
+    } else {
+      // Remove token when logging out
+      await saveTokenToStorage('');
+    }
+    // Update state
+    setToken(token);
+  };
+
   return (
-    <UserContext.Provider value={{ user, setUser, loading }}>
+    <UserContext.Provider value={{ user, setUser, loading, userToken, setUserToken }}>
       {children}
     </UserContext.Provider>
   );

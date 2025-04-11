@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { Searchbar, Card, Text, Button, ActivityIndicator, Divider, TextInput, Chip } from 'react-native-paper';
 import { getProductUserHistory } from '../../services/api/productApi';
-import { getAllGroups } from '../../services/api/groupAPI';
+import { getAllGroups } from '../../services/api/groupApi';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { format } from 'date-fns';
 import { getUsers } from '../../services/api/userApi';

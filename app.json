@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Inventory Frontend",
-    "slug": "inventory-frontend",
+    "name": "Inventory APP",
+    "slug": "inventory-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -34,6 +34,13 @@
         "expo-camera",
         {
           "cameraPermission": "Allow Inventory APP to access your camera to scan product labels."
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Allow Inventory APP to access your Face ID biometric data."
         }
       ]
     ]

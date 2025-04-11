@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { Searchbar, Card, Text, Chip, ActivityIndicator, Divider } from 'react-native-paper';
 import { getProducts } from '../../services/api/productApi';
-import { getAllGroups } from '../../services/api/groupAPI';
+import { getAllGroups } from '../../services/api/groupApi';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type ProductListProps = {

@@ -1,12 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getToken } from '../services/auth/tokenService';
 import { storeToken as saveTokenToStorage } from '../services/auth/tokenService';
+import { getMe } from '../services/api/userApi';
 
 interface User {
-  id: string;
+  uuid: string;
+  username: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  role: 'admin' | 'manager' | 'user';
-  groups: string;
+  arq_id: string;
+  active: boolean;
+  roles?: string[];
+  groups?: string[];
+  permissions?: string[];
 }
 
 interface UserContextType {
@@ -29,14 +36,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const token = await getToken();
         if (token) {
-          // TODO: Fetch user data from backend
-          // For now, using placeholder data
-          setUser({
-            id: '1',
-            email: 'user@example.com',
-            role: 'user',
-            groups: 'LOC1'
-          });
+          // get user data from backend
+          const user = await getMe();
+          setUser(user);
         }
       } catch (error) {
         console.error('Error initializing user:', error);

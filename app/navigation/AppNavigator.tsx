@@ -15,6 +15,7 @@ import NewProductReviewScreen from '../screens/products/NewProductReviewScreen';
 import ExistingProductMatchScreen from '../screens/products/ExistingProductMatchScreen';
 import ProductListScreen from '../screens/products/ProductListScreen';
 import ProductHistoryScreen from '../screens/products/ProductHistoryScreen';
+import TabNavigator from './TabNavigator';
 
 const Stack = createNativeStackNavigator();
 
@@ -65,6 +66,17 @@ export const AppNavigator = () => {
         ) : (
           // App screens
           <>
+            {/* Main Tab Navigator as the first screen for authenticated users */}
+            <Stack.Screen
+              name="MainTabs"
+              component={TabNavigator}
+              options={{ 
+                headerShown: false,
+                title: 'Inventory System'
+              }}
+            />
+            
+            {/* Other screens that will be navigated to from tabs */}
             <Stack.Screen 
               name="ProductTypeSelection" 
               component={ProductTypeSelection} 
@@ -74,11 +86,6 @@ export const AppNavigator = () => {
               name="Camera" 
               component={CameraScreen}
               options={{ title: 'Scan Product' }}
-            />
-            <Stack.Screen 
-              name="TestCamera" 
-              component={TestCameraScreen}
-              options={{ title: 'Camera & OCR Test' }}
             />
             <Stack.Screen
               name="NewProductReview"

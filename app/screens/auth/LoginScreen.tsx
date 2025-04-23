@@ -1,58 +1,204 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
-import { useUser } from '../../contexts/UserContext';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuth } from '../../contexts/AuthContext';
+import { RootStackParamList } from '../../navigation/types/navigation';
+import { FontAwesome } from '@expo/vector-icons';
 
+type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-interface LoginScreenProps {
-  navigation: NativeStackNavigationProp<any>;
-}
+const LoginScreen: React.FC = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-export const LoginScreen = ({ navigation }: LoginScreenProps) => {
-  const [tokenInput, setTokenInput] = useState('');
-  const [error, setError] = useState('');
-  const { setUserToken } = useUser();
+  const navigation = useNavigation<LoginScreenNavigationProp>();
+  const { login, forgotPassword } = useAuth();
 
   const handleLogin = async () => {
+    if (!username || !password) {
+      Alert.alert('Error', 'Please enter both username and password');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      if (!tokenInput.trim()) {
-        setError('Please enter a token');
-        return;
+      console.log('LoginScreen: Attempting login with username:', username);
+      const success = await login(username, password);
+      
+      if (success) {
+        console.log('LoginScreen: Login successful');
+        // Don't manually navigate - the AppNavigatorWrapper will handle this automatically
+        // when the isAuthenticated state changes in AuthContext
+      } else {
+        console.log('LoginScreen: Login failed');
+        Alert.alert('Error', 'Invalid credentials');
       }
-      
-      // Update token in context
-      await setUserToken(tokenInput);
-      
-      // Navigation will happen automatically based on conditional rendering
-      // in AppNavigator.tsx due to userToken being updated
-    } catch (err) {
-      setError('Failed to store token');
-      console.error('Login error:', err);
+    } catch (error) {
+      console.error('LoginScreen: Login error:', error);
+      Alert.alert('Error', 'An error occurred while logging in');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(forgotPasswordEmail)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const success = await forgotPassword(forgotPasswordEmail);
+      
+      if (success) {
+        Alert.alert('Success', 'Password reset instructions have been sent to your email');
+        setShowForgotPassword(false);
+      } else {
+        Alert.alert('Error', 'Failed to send password reset email');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred while sending password reset email');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const navigateToOTPLogin = () => {
+    navigation.navigate('OTPLogin');
+  };
+
+  const navigateToBiometricAuth = () => {
+    navigation.navigate('BiometricAuth');
+  };
+
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={styles.container}>
-          <Text variant="headlineMedium" style={styles.title}>Login</Text>
-          <TextInput
-            label="Enter JWT Token"
-            value={tokenInput}
-            onChangeText={setTokenInput}
-            mode="outlined"
-            style={styles.input}
-            multiline
-            numberOfLines={4}
-          />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Button mode="contained" onPress={handleLogin} style={styles.button}>
-            Login
-          </Button>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.formContainer}>
+          <Text style={styles.title}>Inventory App</Text>
+          <Text style={styles.subtitle}>Sign in to your account</Text>
+
+          {!showForgotPassword ? (
+            <>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Username</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your username"
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Password</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </View>
+
+              <TouchableOpacity
+                onPress={handleLogin}
+                style={styles.loginButton}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.loginButtonText}>Login</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={navigateToOTPLogin}
+                style={styles.otpLoginButton}
+              >
+                <Text style={styles.otpLoginButtonText}>Login with One-Time Passcode</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={navigateToBiometricAuth}
+                style={styles.biometricButton}
+              >
+                <FontAwesome name="fa-solid fa-face-viewfinder" size={18} color="#fff" style={styles.biometricIcon}></FontAwesome>
+                <Text style={styles.biometricButtonText}>Login with Biometrics</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setShowForgotPassword(true)}
+                style={styles.forgotPasswordButton}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  value={forgotPasswordEmail}
+                  onChangeText={setForgotPasswordEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              <TouchableOpacity
+                onPress={handleForgotPassword}
+                style={styles.loginButton}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.loginButtonText}>Reset Password</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setShowForgotPassword(false)}
+                style={styles.forgotPasswordButton}
+              >
+                <Text style={styles.forgotPasswordText}>Back to Login</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -62,21 +208,102 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
+    padding: 20,
+  },
+  formContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 8,
+    fontWeight: '500',
   },
   input: {
-    marginBottom: 10,
+    backgroundColor: '#f9f9f9',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
   },
-  button: {
-    marginTop: 10,
+  loginButton: {
+    backgroundColor: '#3498db',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 8,
   },
-  error: {
-    color: 'red',
-    marginBottom: 10,
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
-}); 
+  otpLoginButton: {
+    backgroundColor: '#2ecc71',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  otpLoginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  biometricButton: {
+    backgroundColor: '#9b59b6',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  biometricButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  biometricIcon: {
+    marginRight: 8,
+  },
+  forgotPasswordButton: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  forgotPasswordText: {
+    color: '#3498db',
+    fontSize: 14,
+  },
+});
+
+export default LoginScreen; 

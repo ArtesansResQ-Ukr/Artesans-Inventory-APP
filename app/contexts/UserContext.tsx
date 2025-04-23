@@ -11,6 +11,8 @@ interface User {
   email: string;
   arq_id: string;
   active: boolean;
+  password: string;
+  language_preference: string;
   roles?: string[];
   groups?: string[];
   permissions?: string[];

@@ -1,37 +1,53 @@
-import * as SecureStore from 'expo-secure-store';
-import { STORAGE_PREFIX } from '@env';
 import { Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const TOKEN_KEY = 'storage_api_token';
-
-// Use SecureStore on native platforms, AsyncStorage for web
-const storage = Platform.OS === 'web' ? AsyncStorage : SecureStore;
-
 /**
- * Stores JWT token securely
- * @param token - The JWT token to store
+ * Stores the authentication token securely
  */
-export const storeToken = async (token: string): Promise<void> => {
-  await storage.setItem(TOKEN_KEY, token);
+export const storeToken = async (token: string): Promise<boolean> => {
+  try {
+    if (Platform.OS === 'web') {
+      await AsyncStorage.setItem('userToken', token);
+    } else {
+      await SecureStore.setItemAsync('userToken', token);
+    }
+    return true;
+  } catch (error) {
+    console.error('Error storing token:', error);
+    return false;
+  }
 };
 
 /**
- * Retrieves JWT token from secure storage
- * @returns The stored JWT token or null if not found
+ * Retrieves the authentication token
  */
 export const getToken = async (): Promise<string | null> => {
-  return await storage.getItem(TOKEN_KEY);
+  try {
+    if (Platform.OS === 'web') {
+      return await AsyncStorage.getItem('userToken');
+    } else {
+      return await SecureStore.getItemAsync('userToken');
+    }
+  } catch (error) {
+    console.error('Error retrieving token:', error);
+    return null;
+  }
 };
 
 /**
- * Removes JWT token from storage (used for logout)
- * 
+ * Removes the authentication token
  */
-export const removeToken = async (): Promise<void> => {
-  if (Platform.OS === 'web') {
-    await AsyncStorage.removeItem(TOKEN_KEY);
-  } else {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+export const removeToken = async (): Promise<boolean> => {
+  try {
+    if (Platform.OS === 'web') {
+      await AsyncStorage.removeItem('userToken');
+    } else {
+      await SecureStore.deleteItemAsync('userToken');
+    }
+    return true;
+  } catch (error) {
+    console.error('Error removing token:', error);
+    return false;
   }
 };

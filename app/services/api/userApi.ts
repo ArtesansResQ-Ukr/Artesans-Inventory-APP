@@ -29,7 +29,7 @@ export const getUsers = async (uuid: string) => {
 
 export const getMe = async () => {
     try {
-        const response = await apiClient.post('/users/me')
+        const response = await apiClient.get(`/users/me`)
         return response.data;
     } catch (error) {
         console.error('Failed to fetch my account:', error);

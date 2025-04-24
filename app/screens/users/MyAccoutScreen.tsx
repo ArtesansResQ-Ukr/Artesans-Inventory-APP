@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { TextInput, Button, Text, ActivityIndicator, Card } from 'react-native-paper';
+import { TextInput, Button, Text, ActivityIndicator, Card, Switch } from 'react-native-paper';
 import { getMe, updateUser } from '../../services/api/userApi';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { useUser } from '../../contexts/UserContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { AppStackParamList } from '../../navigation/types/navigation';
 
 //Define User interface
 interface User {
@@ -32,6 +35,7 @@ export const MyAccountScreen = () => {
     const [isEdited, setIsEdited] = useState(false);
     const [editedUser, setEditedUser] = useState<User | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
 
     useEffect(() => {
         fetchUser();
@@ -67,8 +71,12 @@ export const MyAccountScreen = () => {
         }
         try {
             setIsLoading(true);
-            const updatedUser = await updateUser(editedUser?.uuid, editedUser);
-            setEditedUser(updatedUser);
+            // Save the changes
+            await updateUser(editedUser?.uuid, editedUser);
+            
+            // After successful save, fetch fresh user data
+            const freshUserData = await getMe();
+            setEditedUser(freshUserData);
             setIsEdited(false);
         } catch (error) {
             console.error('Failed to save changes:', error);
@@ -190,7 +198,7 @@ export const MyAccountScreen = () => {
 
             <View style={styles.container}>
                 <Text>Language Preference</Text>
-                <Text>{editedUser?.language_preference}</Text>
+                <Text>{editedUser?.language_preference === 'en' ? 'English' : editedUser?.language_preference === 'uk' ? 'Ukrainian' : 'Not set'}</Text>
             </View>
 
             <View style={styles.container}>
@@ -208,6 +216,16 @@ export const MyAccountScreen = () => {
                 style={styles.button}
             >
                 Save Changes
+            </Button>
+
+            <Button 
+                mode='contained' 
+                onPress={() => navigation.navigate('SecuritySettings')}
+                disabled={isLoading}
+                style={[styles.button, { marginTop: 10, backgroundColor: '#4a90e2' }]}
+                icon="shield-account"
+            >
+                Security Settings
             </Button>
 
             <Button 

@@ -41,3 +41,5 @@ coverage/
 .pytest_cache/
 ios/
 
+#Example
+my-app/

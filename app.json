@@ -40,6 +40,12 @@
         }
       ],
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow ${name} to access your Face ID biometric data."
+        }
+      ],
+      [
         "expo-secure-store",
         {
           "configureAndroidBackup": true,

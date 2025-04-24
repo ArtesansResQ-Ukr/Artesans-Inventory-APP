@@ -5,9 +5,14 @@ interface User {
     username: string;
     first_name: string;
     last_name: string;
+    password: string;
     email: string;
     arq_id: string;
     active: boolean;
+    language_preference: string;
+    roles?: string[];
+    groups?: string[];
+    permissions?: string[];
 }
 
 interface UserUpdate {
@@ -20,6 +25,15 @@ interface UserUpdate {
     groups?: string[];
     roles?: string[];
     permissions?: string[];
+}
+
+interface UserCreate {
+    username?: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    arq_id: string;
+    language_preference?: string;
 }
 
 export const getUsers = async (uuid: string) => {
@@ -37,6 +51,36 @@ export const getMe = async () => {
     }
 }
 
+export const searchUsers = async (first_name: string, last_name: string, username: string, email: string, arq_id: string) => {
+    try {
+        const response = await apiClient.get(`/users/search?first_name=${first_name}&last_name=${last_name}&username=${username}&email=${email}&arq_id=${arq_id}`)
+        return response.data;
+    } catch (error) {
+        console.error('Failed to search users:', error);
+        throw error;
+    }
+}
+
+export const getActiveUsers = async () => {
+    try {
+        const response = await apiClient.get('/users/view-all_active')
+        return response.data;
+    } catch (error) {
+        console.error('Failed to get active users:', error);
+        throw error;
+    }
+}
+
+export const getAllUsers = async () => {
+    try {
+        const response = await apiClient.get('/users/view-all')
+        return response.data;
+    } catch (error) {
+        console.error('Failed to get all users:', error);
+        throw error;
+    }
+}
+
 export const updateUser = async (uuid: string, userData: UserUpdate) => {
     try {   
         const response = await apiClient.patch(`/users/${uuid}`, userData)
@@ -47,9 +91,9 @@ export const updateUser = async (uuid: string, userData: UserUpdate) => {
     }
 }
 
-export const createUser = async (userData: User) => {
+export const createUser = async (userData: UserCreate) => {
     try {
-        const response = await apiClient.post('/users', userData)
+        const response = await apiClient.post('/users/new', userData)
         return response.data;
     } catch (error) {
         console.error('Failed to create user:', error);
@@ -57,13 +101,32 @@ export const createUser = async (userData: User) => {
     }
 }
 
-export const deleteUser = async (uuid: string) => {
+export const addPermissions = async (permissions_uuid: string, user_uuid: string) => {
     try {
-        const response = await apiClient.delete(`/users/${uuid}`)
+        const response = await apiClient.post(`/users/add_permissions?permissions_uuid=${permissions_uuid}&user_uuid=${user_uuid}`)
         return response.data;
     } catch (error) {
-        console.error('Failed to delete user:', error);
+        console.error('Failed to add permissions:', error);
         throw error;
     }
 }
 
+export const removePermissions = async (permissions_uuid: string, user_uuid: string) => {
+    try {
+        const response = await apiClient.post(`/users/remove_permissions?permissions_uuid=${permissions_uuid}&user_uuid=${user_uuid}`)
+        return response.data;
+    } catch (error) {
+        console.error('Failed to remove permissions:', error);
+        throw error;
+    }
+}
+
+export const getGroupUserIn = async (uuid: string) => {
+    try {
+        const response = await apiClient.get(`/users/group-user-in?uuid=${uuid}`)
+        return response.data;
+    } catch (error) {
+        console.error('Failed to get group user in:', error);
+        throw error;
+    }
+}

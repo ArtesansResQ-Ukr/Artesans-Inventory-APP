@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Alert, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
-import * as SecureStore from 'expo-secure-store';
+import { getToken } from '../../services/auth/tokenService';
 
 interface BiometricAuthProps {
-  tokenKey?: string;           // SecureStore key for the JWT token
+  tokenKey?: string;           // SecureStore key for the JWT token (optional)
   onSuccess?: (token: string) => void;
   onFailure?: (error: Error) => void;
   promptMessage?: string;      // Message shown in authentication prompt
@@ -14,7 +14,7 @@ interface BiometricAuthProps {
 }
 
 const BiometricAuth: React.FC<BiometricAuthProps> = ({
-  tokenKey = 'userToken',
+  tokenKey = 'userToken',  // Default to 'userToken' if not provided
   onSuccess,
   onFailure,
   promptMessage = 'Authenticate to access your account',
@@ -47,31 +47,7 @@ const BiometricAuth: React.FC<BiometricAuthProps> = ({
     })();
   }, []);
 
-  // Retrieve token from SecureStore
-  const getToken = useCallback(async () => {
-    try {
-      const token = await SecureStore.getItemAsync(tokenKey);
-      
-      if (token) {
-        console.log('JWT Token retrieved:', token);
-        onSuccess?.(token);
-        return token;
-      } else {
-        const error = new Error('Token not found in secure storage');
-        console.error(error);
-        Alert.alert('Authentication Error', 'Token not found. Please log in again.');
-        onFailure?.(error);
-        return null;
-      }
-    } catch (error) {
-      console.error('Error retrieving token:', error);
-      Alert.alert('Authentication Error', 'Failed to retrieve secure token.');
-      onFailure?.(error instanceof Error ? error : new Error(String(error)));
-      return null;
-    }
-  }, [tokenKey, onSuccess, onFailure]);
-
-  // Authenticate with biometrics
+  // Authenticate with biometrics and retrieve token
   const authenticate = useCallback(async () => {
     if (!isCompatible) {
       Alert.alert('Error', 'Your device does not support biometric authentication');
@@ -101,14 +77,32 @@ const BiometricAuth: React.FC<BiometricAuthProps> = ({
       });
 
       if (result.success) {
-        await getToken();
+        // Authentication successful, get the token from tokenService
+        try {
+          const token = await getToken();
+          if (token) {
+            console.log('JWT Token retrieved successfully');
+            onSuccess?.(token);
+          } else {
+            const error = new Error('Token not found. Please log in first.');
+            console.error(error);
+            Alert.alert('Authentication Error', error.message);
+            onFailure?.(error);
+          }
+        } catch (error) {
+          console.error('Error retrieving token:', error);
+          const tokenError = error instanceof Error 
+            ? error 
+            : new Error('Failed to retrieve secure token');
+          Alert.alert('Authentication Error', tokenError.message);
+          onFailure?.(tokenError);
+        }
       } else {
         // Handle cancellation or failure
         const errorMessage = result.error === 'user_cancel' 
           ? 'Authentication cancelled'
           : 'Authentication failed';
-          
-        console.log(errorMessage);
+        console.log('Authentication result:', result);
         Alert.alert('Authentication', errorMessage);
         onFailure?.(new Error(errorMessage));
       }
@@ -119,7 +113,7 @@ const BiometricAuth: React.FC<BiometricAuthProps> = ({
     } finally {
       setIsAuthenticating(false);
     }
-  }, [isCompatible, promptMessage, cancelLabel, fallbackLabel, getToken, onFailure]);
+  }, [isCompatible, promptMessage, cancelLabel, fallbackLabel, onSuccess, onFailure]);
 
   return (
     <View style={styles.container}>

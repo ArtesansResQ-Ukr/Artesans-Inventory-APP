@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import jwtDecode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import { API_URL } from '@env';
 
 
@@ -220,6 +220,37 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    // Add a sync version of initialize and logout for use by AuthContext
+    setAuthenticated: (state, action: PayloadAction<{token: string, user: {
+      uuid: string;
+      email: string;
+      username: string;
+      permissions: string[];
+      group_uuid: string;
+    }}>) => {
+      state.token = action.payload.token;
+      state.isAuthenticated = true;
+      state.user = {
+        uuid: action.payload.user.uuid,
+        email: action.payload.user.email,
+        username: action.payload.user.username,
+        permissions: action.payload.user.permissions,
+        group_uuid: action.payload.user.group_uuid
+      };
+      state.isLoading = false;
+    },
+    setUnauthenticated: (state) => {
+      state.token = null;
+      state.isAuthenticated = false;
+      state.user = { 
+        uuid: null, 
+        email: null, 
+        username: null,
+        permissions: [],
+        group_uuid: null
+      };
+      state.isLoading = false;
     }
   },
   extraReducers: (builder) => {
@@ -236,12 +267,20 @@ const authSlice = createSlice({
           state.user = {
             uuid: action.payload.user.uuid,
             email: action.payload.user.email,
-            username: action.payload.user.username
+            username: action.payload.user.username,
+            permissions: action.payload.user.permissions,
+            group_uuid: action.payload.user.group_uuid
           };
         } else {
           state.token = null;
           state.isAuthenticated = false;
-          state.user = { uuid: null, email: null, username: null };
+          state.user = { 
+            uuid: null, 
+            email: null, 
+            username: null,
+            permissions: [],
+            group_uuid: null
+          };
         }
       })
       .addCase(initializeAuth.rejected, (state, action) => {
@@ -249,7 +288,13 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.token = null;
         state.isAuthenticated = false;
-        state.user = { uuid: null, email: null, username: null };
+        state.user = { 
+          uuid: null, 
+          email: null, 
+          username: null,
+          permissions: [],
+          group_uuid: null
+        };
       })
       
       // Login
@@ -264,7 +309,9 @@ const authSlice = createSlice({
         state.user = {
           uuid: action.payload.user.uuid,
           email: action.payload.user.email,
-          username: action.payload.user.username
+          username: action.payload.user.username,
+          permissions: action.payload.user.permissions,
+          group_uuid: action.payload.user.group_uuid
         };
       })
       .addCase(login.rejected, (state, action) => {
@@ -276,7 +323,13 @@ const authSlice = createSlice({
       .addCase(logout.fulfilled, (state) => {
         state.token = null;
         state.isAuthenticated = false;
-        state.user = { uuid: null, email: null, username: null };
+        state.user = { 
+          uuid: null, 
+          email: null, 
+          username: null,
+          permissions: [],
+          group_uuid: null
+        };
       })
       
       // Forgot password (no state changes needed except error handling)
@@ -307,6 +360,6 @@ const authSlice = createSlice({
   }
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, setAuthenticated, setUnauthenticated } = authSlice.actions;
 
 export default authSlice.reducer; 

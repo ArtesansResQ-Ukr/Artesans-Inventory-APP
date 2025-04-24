@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { RootStackParamList } from '../../navigation/types/navigation';
-import { FontAwesome } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -46,11 +46,21 @@ const LoginScreen: React.FC = () => {
         // when the isAuthenticated state changes in AuthContext
       } else {
         console.log('LoginScreen: Login failed');
-        Alert.alert('Error', 'Invalid credentials');
+        // Error message will be handled by the catch block
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('LoginScreen: Login error:', error);
-      Alert.alert('Error', 'An error occurred while logging in');
+      if (error.response?.data?.detail) {
+        if (error.response.data.detail === "Incorrect username") {
+          Alert.alert('Error', 'The username you entered does not exist');
+        } else if (error.response.data.detail === "Incorrect password") {
+          Alert.alert('Error', 'The password you entered is incorrect');
+        } else {
+          Alert.alert('Error', error.response.data.detail);
+        }
+      } else {
+        Alert.alert('Error', 'An error occurred while logging in');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +163,7 @@ const LoginScreen: React.FC = () => {
                 onPress={navigateToBiometricAuth}
                 style={styles.biometricButton}
               >
-                <FontAwesome name="fa-solid fa-face-viewfinder" size={18} color="#fff" style={styles.biometricIcon}></FontAwesome>
+                <Ionicons name="finger-print" size={18} color="#fff" style={styles.biometricIcon}></Ionicons>
                 <Text style={styles.biometricButtonText}>Login with Biometrics</Text>
               </TouchableOpacity>
 

@@ -119,6 +119,9 @@ const ProductHistoryScreen = ({ navigation }: ProductHistoryProps) => {
           {item.product_uuid && (
             <Text variant="bodySmall">Product: {item.product_uuid}</Text>
           )}
+          {item.group_uuid && (
+            <Text variant="bodySmall">Group: {item.group_uuid}</Text>
+          )}
         </View>
       </Card.Content>
     </Card>

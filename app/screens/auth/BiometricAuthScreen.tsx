@@ -1,33 +1,67 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BiometricAuth from '../../components/auth/BiometricAuth';
 import { RootStackParamList } from '../../navigation/types/navigation';
+import { useAuth } from '../../contexts/AuthContext';
 
 type BiometricAuthScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const BiometricAuthScreen: React.FC = () => {
   const navigation = useNavigation<BiometricAuthScreenNavigationProp>();
+  const { authenticateWithBiometrics } = useAuth();
   const [status, setStatus] = useState<string>('');
 
   const handleAuthSuccess = (token: string) => {
     console.log('Authentication successful!');
     setStatus('Authentication successful! Token retrieved.');
     
-    // In a real app, you might navigate to the main app here
-    // navigation.navigate('MainTabs');
-    
-    // Or you might set up your API client with the token
-    // apiClient.setAuthToken(token);
+    // Don't manually navigate - the AppNavigatorWrapper will handle this automatically
+    // when the isAuthenticated state changes in AuthContext
   };
 
   const handleAuthFailure = (error: Error) => {
     console.error('Authentication failed:', error.message);
     setStatus(`Authentication failed: ${error.message}`);
     
-    // You could implement fallback authentication here
+    // Show an alert with the error message
+    Alert.alert(
+      'Authentication Failed',
+      error.message,
+      [
+        {
+          text: 'Try Again',
+          style: 'default',
+        },
+        {
+          text: 'Back to Login',
+          onPress: () => navigation.navigate('Login'),
+          style: 'cancel',
+        },
+      ]
+    );
   };
+
+  // Attempt biometric authentication as soon as the screen loads
+  useEffect(() => {
+    const attemptAuth = async () => {
+      try {
+        const success = await authenticateWithBiometrics();
+        if (success) {
+          handleAuthSuccess('token_retrieved');
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          handleAuthFailure(error);
+        } else {
+          handleAuthFailure(new Error('Authentication failed'));
+        }
+      }
+    };
+    
+    attemptAuth();
+  }, [authenticateWithBiometrics]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -54,22 +88,6 @@ const BiometricAuthScreen: React.FC = () => {
             <Text style={styles.statusText}>{status}</Text>
           </View>
         ) : null}
-
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoTitle}>How it works:</Text>
-          <Text style={styles.infoText}>
-            1. The app checks if your device supports biometric authentication
-          </Text>
-          <Text style={styles.infoText}>
-            2. When you tap the button, you'll be prompted to authenticate
-          </Text>
-          <Text style={styles.infoText}>
-            3. After successful authentication, your secure token will be retrieved
-          </Text>
-          <Text style={styles.infoText}>
-            4. In a real app, you would then be granted access to protected features
-          </Text>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

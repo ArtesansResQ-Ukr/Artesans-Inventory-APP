@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { TextInput, Button, Text, ActivityIndicator, Card, Switch } from 'react-native-paper';
+import { TextInput, Button, Text, ActivityIndicator, Card, Switch, Chip } from 'react-native-paper';
 import { getMe, updateUser } from '../../services/api/userApi';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
@@ -8,8 +8,8 @@ import { useUser } from '../../contexts/UserContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { AppStackParamList } from '../../navigation/types/navigation';
-
+import { UserManagementStackParamList } from '../../navigation/types/navigation';
+import { AccountStackParamList } from '../../navigation/types/navigation';
 //Define User interface
 interface User {
     uuid: string;
@@ -35,7 +35,7 @@ export const MyAccountScreen = () => {
     const [isEdited, setIsEdited] = useState(false);
     const [editedUser, setEditedUser] = useState<User | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
+    const navigation = useNavigation<StackNavigationProp<AccountStackParamList>>();
 
     useEffect(() => {
         fetchUser();
@@ -47,7 +47,11 @@ export const MyAccountScreen = () => {
             setError(null);
             const userData = await getMe();
             console.log('User data received:', userData);
-            setEditedUser(userData);
+            if (userData.data) {
+                setEditedUser(userData.data);
+            } else {
+                setError('No user data received from server');
+            }
         } catch (error) {
             console.error('Failed to fetch user:', error);
             setError('Failed to load user data. Please try again.');
@@ -76,7 +80,11 @@ export const MyAccountScreen = () => {
             
             // After successful save, fetch fresh user data
             const freshUserData = await getMe();
-            setEditedUser(freshUserData);
+            if (freshUserData.data) {
+                setEditedUser(freshUserData.data);
+            } else {
+                setError('No user data received from server');
+            }
             setIsEdited(false);
         } catch (error) {
             console.error('Failed to save changes:', error);
@@ -203,7 +211,10 @@ export const MyAccountScreen = () => {
 
             <View style={styles.container}>
                 <Text>Permissions</Text>
-                <Text>{editedUser?.permissions?.join(', ')}</Text>
+                <View style={styles.chipsContainer}>
+                <Chip style={styles.permissionChip}>
+                    {editedUser?.permissions?.join(', ')}</Chip>
+                    </View>
             </View>
             
 
@@ -279,5 +290,12 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
     },
+    chipsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'nowrap',
+      },
+      permissionChip: {
+        margin: 4,
+      },
 });
 

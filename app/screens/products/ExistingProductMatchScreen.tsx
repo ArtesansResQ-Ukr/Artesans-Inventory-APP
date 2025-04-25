@@ -3,9 +3,11 @@ import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-nat
 import { Text, Button, Card, ActivityIndicator, TextInput } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
-import { convertOcrToProduct, getProductMatches, increaseProductQuantity, decreaseProductQuantity } from '../../services/api/productApi';
+import { convertOcrToProduct, getProductMatches, increaseProductQuantity, decreaseProductQuantity, getProductMatchesGlobal } from '../../services/api/productApi';
 import { setLoading, resetOcr } from '../../store/slices/ocrSlice';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { InventoryStackParamList } from '../../navigation/types/navigation';
 
 // Define Product interface
 interface Product {
@@ -18,12 +20,11 @@ interface Product {
   ocr_text?: string;
 }
 
-type Props = {
-  navigation: NativeStackNavigationProp<any>;
-};
+type ExistingProductMatchScreenNavigationProp = StackNavigationProp<InventoryStackParamList>;
 
-const ExistingProductMatchScreen = ({ navigation }: Props) => {
+const ExistingProductMatchScreen = () => {
   const dispatch = useDispatch();
+  const navigation = useNavigation<ExistingProductMatchScreenNavigationProp>();
   const { ocrResults, imageUri, loading } = useSelector((state: RootState) => state.ocr);
   const [matchingProducts, setMatchingProducts] = useState<Product[]>([]);
   const [isNewProduct, setIsNewProduct] = useState(false);
@@ -34,6 +35,7 @@ const ExistingProductMatchScreen = ({ navigation }: Props) => {
   const [processing, setProcessing] = useState(true);
   const [actionType, setActionType] = useState('add'); // 'add' or 'remove'
   const [convertingOcr, setConvertingOcr] = useState(true);
+  const [isGlobalSearching, setIsGlobalSearching] = useState(false);
   // Process OCR text when component mounts
   useEffect(() => {
     const convertOcr = async () => {
@@ -143,6 +145,34 @@ const ExistingProductMatchScreen = ({ navigation }: Props) => {
     navigation.navigate('Camera');
   };
 
+  const handleGlobalSearch = async () => {
+    if (!convertedProduct) {
+      alert('No product information available to search');
+      return;
+    }
+    
+    try {
+      setIsGlobalSearching(true);
+      
+      // Use the converted product for global matching
+      const globalMatches = await getProductMatchesGlobal(convertedProduct);
+      
+      if (globalMatches.is_new_product) {
+        setIsNewProduct(true);
+      } else {
+        setIsNewProduct(false);
+        setMatchingProducts(globalMatches.matched_products);
+        setMatchedUuids(globalMatches.matched_uuids);
+      }
+      
+    } catch (error) {
+      console.error('Error finding global matches:', error);
+      alert('Error searching for global matches. Please try again.');
+    } finally {
+      setIsGlobalSearching(false);
+    }
+  };
+
   useEffect(() => {
     console.log("matchingProducts after update:", matchingProducts);
   }, [matchingProducts]);
@@ -164,12 +194,14 @@ const ExistingProductMatchScreen = ({ navigation }: Props) => {
   }
 
   //loading screen for product matches and quantity update
-  if (processing || loading) {
+  if (processing || loading || isGlobalSearching) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
         <Text style={styles.loadingText}>
-          {processing ? 'Finding matching products...' : 'Updating inventory...'}
+          {processing ? 'Finding matching products...' : 
+           isGlobalSearching ? 'Searching global database...' : 
+           'Updating inventory...'}
         </Text>
       </View>
     );
@@ -246,6 +278,15 @@ const ExistingProductMatchScreen = ({ navigation }: Props) => {
             <Text>Quantity: {convertedProduct.quantity}</Text>
             <Text>Comments: {convertedProduct.comments}</Text>
           </Card.Content>
+          <Card.Actions>
+            <Button
+              mode="contained"
+              onPress={handleGlobalSearch}
+              style={styles.globalSearchButton}
+            >
+              Search Global Database
+            </Button>
+          </Card.Actions>
         </Card>
       )}
       
@@ -404,6 +445,10 @@ const styles = StyleSheet.create({
   },
   retakeButton: {
     marginTop: 24,
+  },
+  globalSearchButton: {
+    width: '100%',
+    marginTop: 8,
   },
 });
 

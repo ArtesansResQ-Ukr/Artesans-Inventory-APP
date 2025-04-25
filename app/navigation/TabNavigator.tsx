@@ -1,22 +1,137 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from 'react-native-paper';
 import { Platform, View, Text, StyleSheet } from 'react-native';
+import { 
+  TabNavigatorParamList, 
+  HomeStackParamList, 
+  InventoryStackParamList,
+  UserManagementStackParamList,
+  AccountStackParamList
+} from './types/navigation';
 
 // Import your main tab screens
 import HomeScreen from '../screens/HomeScreen';
 import ProductTypeSelection from '../screens/products/ProductTypeSelection';
 import { MyAccountScreen } from '../screens/users/MyAccoutScreen';
 import UserManagementScreen from '../screens/users/UserManagementScreen';
+import ViewAllUsers from '../screens/users/ViewAllUsers';
+import CreateUserScreen from '../screens/users/CreateUserScreen';
+import UpdateUserScreen from '../screens/users/UpdateUserScreen';
+import ProfileScreen from '../screens/users/ProfileScreen';
+import SecuritySettingsScreen from '../screens/settings/SecuritySettingsScreen';
+import CameraScreen from '../screens/camera/CameraScreen';
+import NewProductReviewScreen from '../screens/products/NewProductReviewScreen';
+import ExistingProductMatchScreen from '../screens/products/ExistingProductMatchScreen';
+import ProductListScreen from '../screens/products/ProductListScreen';
+import ProductHistoryScreen from '../screens/products/ProductHistoryScreen';
 
-// Define tab navigator param list
-export type TabNavigatorParamList = {
-  Home: undefined;
-  Inventory: undefined;
-  UserManagement: undefined;
-  MyAccount: undefined;
-};
+// Create stack navigators for each tab
+const HomeStack = createStackNavigator<HomeStackParamList>();
+const InventoryStack = createStackNavigator<InventoryStackParamList>();
+const UserManagementStack = createStackNavigator<UserManagementStackParamList>();
+const AccountStack = createStackNavigator<AccountStackParamList>();
+
+// Home Stack Screen
+const HomeStackScreen = () => (
+  <HomeStack.Navigator>
+    <HomeStack.Screen 
+      name="HomeScreen" 
+      component={HomeScreen}
+      options={{ headerShown: false }}
+    />
+    <HomeStack.Screen 
+      name="SecuritySettings" 
+      component={SecuritySettingsScreen}
+      options={{ title: 'Security Settings' }}
+    />
+  </HomeStack.Navigator>
+);
+
+// Inventory Stack Screen
+const InventoryStackScreen = () => (
+  <InventoryStack.Navigator>
+    <InventoryStack.Screen 
+      name="ProductTypeSelection" 
+      component={ProductTypeSelection}
+      options={{ headerShown: false }}
+    />
+    <InventoryStack.Screen 
+      name="Camera" 
+      component={CameraScreen} 
+      options={{ title: 'Scan Product' }}
+    />
+    <InventoryStack.Screen 
+      name="NewProductReview" 
+      component={NewProductReviewScreen}
+      options={{ title: 'New Product' }}
+    />
+    <InventoryStack.Screen 
+      name="ExistingProductMatch" 
+      component={ExistingProductMatchScreen}
+      options={{ title: 'Match Product' }}
+    />
+    <InventoryStack.Screen 
+      name="ProductList" 
+      component={ProductListScreen}
+      options={{ title: 'Product Inventory' }}
+    />
+    <InventoryStack.Screen 
+      name="ProductHistory" 
+      component={ProductHistoryScreen}
+      options={{ title: 'Product History' }}
+    />
+  </InventoryStack.Navigator>
+);
+
+// User Management Stack Screen
+const UserManagementStackScreen = () => (
+  <UserManagementStack.Navigator>
+    <UserManagementStack.Screen 
+      name="UserManagementScreen" 
+      component={UserManagementScreen}
+      options={{ headerShown: false }}
+    />
+    <UserManagementStack.Screen 
+      name="ViewAllUsers" 
+      component={ViewAllUsers}
+      options={{ title: 'All Users' }}
+    />
+    <UserManagementStack.Screen 
+      name="CreateUser" 
+      component={CreateUserScreen}
+      options={{ title: 'Create User' }}
+    />
+    <UserManagementStack.Screen 
+      name="UpdateUser" 
+      component={UpdateUserScreen}
+      options={{ title: 'Update User' }}
+    />
+    <UserManagementStack.Screen 
+      name="ProfileScreen" 
+      component={ProfileScreen}
+      options={{ title: 'User Profile' }}
+    />
+  </UserManagementStack.Navigator>
+);
+
+// Account Stack Screen
+const AccountStackScreen = () => (
+  <AccountStack.Navigator>
+    <AccountStack.Screen 
+      name="MyAccountScreen" 
+      component={MyAccountScreen}
+      options={{ headerShown: false }}
+    />
+    <AccountStack.Screen 
+      name="SecuritySettings" 
+      component={SecuritySettingsScreen}
+      options={{ title: 'Security Settings' }}
+    />
+  </AccountStack.Navigator>
+);
 
 const Tab = createBottomTabNavigator<TabNavigatorParamList>();
 
@@ -50,6 +165,7 @@ const TabNavigator = () => {
   
   return (
     <Tab.Navigator
+      initialRouteName="Home"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: string = '';
@@ -61,14 +177,14 @@ const TabNavigator = () => {
           } else if (route.name === 'UserManagement') {
             iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'MyAccount'){
-            iconName = focused ? 'contact' : 'contact-outline';
+            iconName = focused ? 'person' : 'person-outline';
           }
           
           return <Ionicons name={iconName as any} size={isWeb ? size * 1.2 : size} color={color} />;
         },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: 'gray',
-        headerShown: true,
+        headerShown: false,
         tabBarStyle: {
           height: isWeb ? 60 : 70,
           paddingBottom: isWeb ? 10 : 20,
@@ -92,47 +208,36 @@ const TabNavigator = () => {
         } : undefined,
       })}
     >
+      
       <Tab.Screen 
         name="Home" 
-        component={HomeScreen} 
+        component={HomeStackScreen} 
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} color={color} size={isWeb ? size * 1.2 : size} />
-          ),
         }}
       />
       
       <Tab.Screen 
         name="Inventory" 
-        component={ProductTypeSelection} 
+        component={InventoryStackScreen} 
         options={{
           title: 'Inventory',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? 'list' : 'list-outline'} color={color} size={isWeb ? size * 1.2 : size} />
-          ),
         }}
       />
       
       <Tab.Screen 
         name="UserManagement" 
-        component={UserManagementScreen} 
+        component={UserManagementStackScreen} 
         options={{
           title: 'Users',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? 'people' : 'people-outline'} color={color} size={isWeb ? size * 1.2 : size} />
-          ),
         }}
       />
       
       <Tab.Screen 
         name="MyAccount" 
-        component={MyAccountScreen} 
+        component={AccountStackScreen} 
         options={{
           title: 'My Account',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={isWeb ? size * 1.2 : size} />
-          ),
         }}
       />
     </Tab.Navigator>

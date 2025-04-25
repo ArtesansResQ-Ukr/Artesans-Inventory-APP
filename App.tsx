@@ -1,4 +1,5 @@
 import React from 'react';
+import 'expo-dev-client';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as ReduxProvider } from 'react-redux';
 import { store } from './app/store';

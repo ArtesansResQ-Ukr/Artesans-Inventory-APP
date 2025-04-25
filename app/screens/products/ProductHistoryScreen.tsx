@@ -5,7 +5,7 @@ import { getProductUserHistory } from '../../services/api/productApi';
 import { getAllGroups } from '../../services/api/groupApi';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { format } from 'date-fns';
-import { getUsers } from '../../services/api/userApi';
+import { getUsersByUuid, searchUsers } from '../../services/api/userApi';
 
 type ProductHistoryProps = {
   navigation: NativeStackNavigationProp<any>;
@@ -89,23 +89,24 @@ const ProductHistoryScreen = ({ navigation }: ProductHistoryProps) => {
 
   // In a real app, you'd have an API to search users by name
 
-  const searchUsers = async (query: string) => {
+  const searchUsersByName = async (query: string) => {
     setSearching(true);
     setSearchQuery(query);
     try {
 
-      const response = await getUsers(query);
-      
-      return response.data.users;
-    
-      setUsers(response.filter((user: any) => 
-        user.name.toLowerCase().includes(query.toLowerCase())
+      const response = await searchUsers({first_name: query});
+      if (response?.data) {
+        setUsers(response.data.filter((user: any) => 
+          user.name.toLowerCase().includes(query.toLowerCase())
         ));
-    setShowUserDropdown(true);
-        } catch (error) {
-        console.error('Error searching users:', error);
-        }
-        };
+        setShowUserDropdown(true);
+      }
+      return response?.data;
+    
+    } catch (error) {
+      console.error('Error searching users:', error);
+    }
+  };
 
   // Render history item
   const renderHistoryItem = ({ item }: { item: any }) => (
@@ -129,24 +130,18 @@ const ProductHistoryScreen = ({ navigation }: ProductHistoryProps) => {
 
   return (
     <View style={styles.container}>
+      <Text variant="titleLarge" style={styles.title}>History Log</Text>
       <Card style={styles.searchCard}>
         <Card.Content>
           <Text variant="titleMedium">Search By User</Text>
           <View style={styles.userSearchContainer}>
-            <TextInput
-              label="User UUID"
-              value={userUuid}
-              onChangeText={setUserUuid}
-              style={styles.userInput}
-              mode="outlined"
-            />
             <TextInput
               label="Search User by Name"
               value={userSearchQuery}
               onChangeText={(text) => {
                 setUserSearchQuery(text);
                 if (text.length > 2) {
-                  searchUsers(text);
+                  searchUsers({first_name: text});
                 } else {
                   setShowUserDropdown(false);
                 }
@@ -237,10 +232,19 @@ const ProductHistoryScreen = ({ navigation }: ProductHistoryProps) => {
 };
 
 const styles = StyleSheet.create({
+  title: {
+    marginTop: 10,
+    marginBottom: 20,
+    fontWeight: 'bold',
+    fontSize: 24,
+    textAlign: 'center',
+    color: 'Gray',
+  },
   container: {
     flex: 1,
     padding: 16,
     backgroundColor: '#f5f5f5',
+    marginTop: 50,
   },
   searchCard: {
     marginBottom: 16,

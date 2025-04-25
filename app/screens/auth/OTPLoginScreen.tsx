@@ -14,9 +14,9 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
-import { RootStackParamList } from '../../navigation/types/navigation';
+import { AuthStackParamList } from '../../navigation/types/navigation';
 
-type OTPLoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type OTPLoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 const OTPLoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');

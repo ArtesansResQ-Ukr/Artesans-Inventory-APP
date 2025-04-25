@@ -5,14 +5,15 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
 import { convertOcrToProduct, createProduct } from '../../services/api/productApi';
 import { setLoading, resetOcr } from '../../store/slices/ocrSlice';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { InventoryStackParamList } from '../../navigation/types/navigation';
 
-type Props = {
-  navigation: NativeStackNavigationProp<any>;
-};
+type NewProductReviewScreenNavigationProp = StackNavigationProp<InventoryStackParamList>;
 
-const NewProductReviewScreen = ({ navigation }: Props) => {
+const NewProductReviewScreen = () => {
   const dispatch = useDispatch();
+  const navigation = useNavigation<NewProductReviewScreenNavigationProp>();
   const { ocrResults, imageUri, loading } = useSelector((state: RootState) => state.ocr);
   
   const [product, setProduct] = useState({

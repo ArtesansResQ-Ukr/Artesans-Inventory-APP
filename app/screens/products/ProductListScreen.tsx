@@ -4,13 +4,14 @@ import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { Searchbar, Card, Text, Chip, ActivityIndicator, Divider } from 'react-native-paper';
 import { getProducts } from '../../services/api/productApi';
 import { getAllGroups } from '../../services/api/groupApi';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { InventoryStackParamList } from '../../navigation/types/navigation';
 
-type ProductListProps = {
-  navigation: NativeStackNavigationProp<any>;
-};
+type ProductListScreenNavigationProp = StackNavigationProp<InventoryStackParamList>;
 
-const ProductListScreen = ({ navigation }: ProductListProps) => {
+const ProductListScreen = () => {
+  const navigation = useNavigation<ProductListScreenNavigationProp>();
   const [products, setProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,11 +59,11 @@ const ProductListScreen = ({ navigation }: ProductListProps) => {
     try {
       // Assuming you have a getGroups API method
       const groups = await getAllGroups();
-      const groupsMapping = groups.reduce((acc: {[key: string]: string}, group: any) => {
+      const groupsMapping = groups.data?.reduce((acc: {[key: string]: string}, group: any) => {
         acc[group.uuid] = group.name;
         return acc;
       }, {});
-      setGroupsMap(groupsMapping);
+      setGroupsMap(groupsMapping || {});
     } catch (error) {
       console.error('Failed to fetch groups:', error);
     }
@@ -121,7 +122,7 @@ const ProductListScreen = ({ navigation }: ProductListProps) => {
 
   // Render product item
   const renderProductItem = ({ item }: { item: any }) => (
-    <Card style={styles.card} onPress={() => navigation.navigate('ProductDetail', { productUuid: item.uuid })}>
+    <Card style={styles.card} onPress={() => navigation.navigate('ProductDetail', { productUuid: item.uuid , groupUuid: item.group_uuid })}>
       <Card.Content>
         <Text variant="titleLarge">{item.name}</Text>
         <Text variant="bodyMedium">Category: {item.category}</Text>
@@ -137,6 +138,7 @@ const ProductListScreen = ({ navigation }: ProductListProps) => {
 
   return (
     <View style={styles.container}>
+      <Text variant="titleLarge" style={styles.title}>Inventory List</Text>
       <Searchbar
         placeholder="Search products"
         onChangeText={onChangeSearch}
@@ -195,10 +197,19 @@ const ProductListScreen = ({ navigation }: ProductListProps) => {
 };
 
 const styles = StyleSheet.create({
+  title: {
+    marginTop: 10,
+    marginBottom: 20,
+    fontWeight: 'bold',
+    fontSize: 24,
+    textAlign: 'center',
+    color: 'Gray',
+  },
   container: {
     flex: 1,
     padding: 16,
     backgroundColor: '#f5f5f5',
+    marginTop: 50,
   },
   searchBar: {
     marginBottom: 8,

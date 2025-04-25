@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   View, 
   ScrollView, 
@@ -20,8 +20,8 @@ import {
 } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { AppStackParamList } from '../../navigation/types/navigation';
-import { getAllUsers, getActiveUsers } from '../../services/api/userApi';
+import { UserManagementStackParamList } from '../../navigation/types/navigation';
+import { getAllUsers, getActiveUsers, getGroupUserIn } from '../../services/api/userApi';
 import { getAllGroups } from '../../services/api/groupApi';
 
 // Define user interface
@@ -33,7 +33,6 @@ interface User {
   email?: string;
   arq_id?: string;
   active?: boolean;
-  group_uuid?: string;
 }
 
 interface Group {
@@ -47,7 +46,7 @@ interface GroupedUsers {
 
 const ViewAllUsers = () => {
   const theme = useTheme();
-  const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
+  const navigation = useNavigation<StackNavigationProp<UserManagementStackParamList>>();
   const [users, setUsers] = useState<User[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,12 +67,12 @@ const ViewAllUsers = () => {
         getAllGroups()
       ]);
       
-      setUsers(usersData);
-      setGroups(groupsData);
+      setUsers(usersData.data || []);
+      setGroups(groupsData.data || []);
       
       // Set all groups as expanded by default
       const initialExpandedState: Record<string, boolean> = {};
-      groupsData.forEach((group: Group) => {
+      (groupsData.data || []).forEach((group: Group) => {
         initialExpandedState[group.uuid] = true;
       });
       // Also expand the "inactive users" section
@@ -104,49 +103,69 @@ const ViewAllUsers = () => {
   };
 
   // Filter users based on search query
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = useMemo(() => {
     const searchLower = searchQuery.toLowerCase();
-    return (
-      (user.first_name?.toLowerCase().includes(searchLower) || 
-      user.last_name?.toLowerCase().includes(searchLower) || 
+    return users.filter(user =>
+      (user.first_name?.toLowerCase().includes(searchLower) ||
+      user.last_name?.toLowerCase().includes(searchLower) ||
       user.username?.toLowerCase().includes(searchLower) ||
       user.email?.toLowerCase().includes(searchLower))
     );
-  });
+  }, [users, searchQuery]);
+
+  // State for grouped users
+  const [groupedUsers, setGroupedUsers] = useState<GroupedUsers>({});
+  const [inactiveUsers, setInactiveUsers] = useState<User[]>([]);
 
   // Group users by their group_uuid
-  const groupedUsers: GroupedUsers = {};
-  const inactiveUsers: User[] = [];
-
-  filteredUsers.forEach(user => {
-    // Separate inactive users
-    if (user.active === false) {
-      inactiveUsers.push(user);
-      return;
-    }
+  useEffect(() => {
+    const groupUsers = async () => {
+      const newGroupedUsers: GroupedUsers = {};
+      const newInactiveUsers: User[] = [];
+      
+      // Handle inactive users
+      for (const user of filteredUsers) {
+        if (user.active === false) {
+          newInactiveUsers.push(user);
+          continue;
+        }
+        
+        let groupId = 'unknown';
+        try {
+          const groupResponse = await getGroupUserIn(user.uuid);
+          groupId = groupResponse?.data?.group_uuid || 'unknown';
+        } catch (error) {
+          console.error('Failed to get group info:', error);
+        }
+        
+        if (!newGroupedUsers[groupId]) {
+          newGroupedUsers[groupId] = [];
+        }
+        newGroupedUsers[groupId].push(user);
+      }
+      
+      // Sort users within each group
+      Object.keys(newGroupedUsers).forEach(groupId => {
+        newGroupedUsers[groupId].sort((a, b) => {
+          const nameA = a.first_name?.toLowerCase() || '';
+          const nameB = b.first_name?.toLowerCase() || '';
+          return nameA.localeCompare(nameB);
+        });
+      });
+      
+      // Sort inactive users
+      newInactiveUsers.sort((a, b) => {
+        const nameA = a.first_name?.toLowerCase() || '';
+        const nameB = b.first_name?.toLowerCase() || '';
+        return nameA.localeCompare(nameB);
+      });
+      
+      setGroupedUsers(newGroupedUsers);
+      setInactiveUsers(newInactiveUsers);
+    };
     
-    const groupId = user.group_uuid || 'unknown';
-    if (!groupedUsers[groupId]) {
-      groupedUsers[groupId] = [];
-    }
-    groupedUsers[groupId].push(user);
-  });
-
-  // Sort users within each group by first_name
-  Object.keys(groupedUsers).forEach(groupId => {
-    groupedUsers[groupId].sort((a, b) => {
-      const nameA = a.first_name?.toLowerCase() || '';
-      const nameB = b.first_name?.toLowerCase() || '';
-      return nameA.localeCompare(nameB);
-    });
-  });
-
-  // Also sort inactive users
-  inactiveUsers.sort((a, b) => {
-    const nameA = a.first_name?.toLowerCase() || '';
-    const nameB = b.first_name?.toLowerCase() || '';
-    return nameA.localeCompare(nameB);
-  });
+    groupUsers();
+  }, [filteredUsers]);
 
   // Toggle group expansion
   const toggleGroupExpansion = (groupId: string) => {

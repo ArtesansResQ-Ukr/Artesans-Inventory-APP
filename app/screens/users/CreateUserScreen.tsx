@@ -21,6 +21,9 @@ import {
   Dialog,
   Paragraph
 } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { UserManagementStackParamList } from '../../navigation/types/navigation';
 import { createUser } from '../../services/api/userApi';
 import { getAllGroups } from '../../services/api/groupApi';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -29,6 +32,8 @@ import Animated, {
   useAnimatedStyle, 
   withSpring
 } from 'react-native-reanimated';
+
+type CreateUserScreenNavigationProp = StackNavigationProp<UserManagementStackParamList>;
 
 interface UserCreate {
   username?: string;
@@ -44,9 +49,11 @@ interface Group {
   name: string;
 }
 
-const CreateUserScreen = ({ navigation }: { navigation: any }) => {
+const CreateUserScreen = () => {
+  const navigation = useNavigation<CreateUserScreenNavigationProp>();
   const theme = useTheme();
   const [userData, setUserData] = useState<UserCreate>({
+    username: '',
     first_name: '',
     last_name: '',
     email: '',
@@ -156,8 +163,8 @@ const CreateUserScreen = ({ navigation }: { navigation: any }) => {
       const response = await createUser(userData);
       
       // Show success message
-      setSuccessMessage(response.message || 'User created successfully');
-      setTempPassword(response.temp_password || '');
+      setSuccessMessage(response.data?.message || 'User not created');
+      setTempPassword(response.data?.temp_password || '');
       setSuccessDialogVisible(true);
       
       // Reset form
@@ -214,6 +221,17 @@ const CreateUserScreen = ({ navigation }: { navigation: any }) => {
                   {errors.form}
                 </HelperText>
               )}
+
+              <TextInput
+                label="Username (optional)"
+                value={userData.username}
+                onChangeText={(text) => updateField('username', text)}
+                style={styles.input}
+                disabled={loading}
+              />
+              <HelperText type="info" visible>
+                If left blank, the username will be the first name and last name concatenated with a period.
+              </HelperText>
 
               <TextInput
                 label="First Name *"

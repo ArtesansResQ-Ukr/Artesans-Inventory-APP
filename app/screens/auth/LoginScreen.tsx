@@ -14,10 +14,10 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
-import { RootStackParamList } from '../../navigation/types/navigation';
+import { AuthStackParamList } from '../../navigation/types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 const LoginScreen: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -26,8 +26,29 @@ const LoginScreen: React.FC = () => {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [tokenExpiredMessage, setTokenExpiredMessage] = useState<string | null>(null);
+
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { login, forgotPassword } = useAuth();
+
+  // Check for token expiration error in navigation params
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Clear any existing messages when screen is focused
+      setTokenExpiredMessage(null);
+      
+      // Check if we have token expiration error in navigation state
+      const routes = navigation.getState().routes;
+      const loginRoute = routes.find(r => r.name === 'Login');
+      if (loginRoute && loginRoute.params && 'tokenExpired' in loginRoute.params) {
+        if ((loginRoute.params as any).tokenExpired === true) {
+          setTokenExpiredMessage('Your session has expired. Please sign in again with your password or use a One-Time Passcode.');
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -42,6 +63,8 @@ const LoginScreen: React.FC = () => {
       
       if (success) {
         console.log('LoginScreen: Login successful');
+        // Clear any token expired message
+        setTokenExpiredMessage(null);
         // Don't manually navigate - the AppNavigatorWrapper will handle this automatically
         // when the isAuthenticated state changes in AuthContext
       } else {
@@ -114,6 +137,13 @@ const LoginScreen: React.FC = () => {
         <View style={styles.formContainer}>
           <Text style={styles.title}>Inventory App</Text>
           <Text style={styles.subtitle}>Sign in to your account</Text>
+
+          {tokenExpiredMessage && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={20} color="#e74c3c" style={styles.errorIcon} />
+              <Text style={styles.errorText}>{tokenExpiredMessage}</Text>
+            </View>
+          )}
 
           {!showForgotPassword ? (
             <>
@@ -247,6 +277,24 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginBottom: 24,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffebeb',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ffd0d0',
+  },
+  errorIcon: {
+    marginRight: 8,
+  },
+  errorText: {
+    color: '#e74c3c',
+    fontSize: 14,
+    flex: 1,
   },
   inputContainer: {
     marginBottom: 16,

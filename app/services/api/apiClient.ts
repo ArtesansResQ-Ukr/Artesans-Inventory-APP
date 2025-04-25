@@ -2,6 +2,9 @@ import axios from 'axios';
 import { getToken } from '../auth/tokenService';
 import { apiConfig } from '../../config/apiConfig';
 import { Platform } from 'react-native';
+// Import navigation for redirection
+import { CommonActions } from '@react-navigation/native';
+import { navigationRef } from '../navigation/navigationRef';
 
 //This communicates with the backend
 
@@ -52,9 +55,25 @@ apiClient.interceptors.response.use(
       }
     }
     
-    // Handle 403 errors (expired token) by redirecting to login
-    if (error.response && error.response.status === 403) {
+    // Handle 401 or 403 errors (expired token) by redirecting to login
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       console.error('Authentication error: Token expired or invalid');
+      
+      // Check if the error is specifically about an expired token
+      const isTokenExpired = 
+        error.response.data?.detail?.includes('expired token') || 
+        error.response.data?.detail?.includes('Invalid token') ||
+        error.response.status === 401;
+      
+      if (isTokenExpired && navigationRef.isReady()) {
+        // Navigate to Login screen with tokenExpired flag
+        navigationRef.dispatch(
+          CommonActions.navigate({
+            name: 'Login',
+            params: { tokenExpired: true },
+          })
+        );
+      }
     }
     
     return Promise.reject(error);

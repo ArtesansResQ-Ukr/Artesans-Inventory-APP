@@ -54,6 +54,18 @@ export const getProductMatches = async (scannedProduct: Product) => {
   }
 };
 
+export const getProductMatchesGlobal = async (scannedProduct: Product) => {
+  try {
+    console.log('scannedProduct:', scannedProduct);
+    const response = await apiClient.post(`/products/match-global`, scannedProduct);
+    console.log('response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get product matches globally:', error);
+    throw error;
+  }
+};
+
 /**
  * Creates a new product in the backend
  * 
@@ -130,6 +142,18 @@ export const decreaseProductQuantity = async (uuid: string, quantity: number) =>
   }
 }; 
 
+export const deleteProduct = async (uuid: string) => {
+  try {
+    const response = await apiClient.post(`/products/${uuid}/delete`, {
+      uuid
+    });
+    return response.data.product_user_history_action;
+  } catch (error) {
+    console.error('Failed to delete product:', error);
+    throw error;
+  }
+}
+
 /**
  * Fetches all products with optional filters
  * 
@@ -168,3 +192,13 @@ export const getProductUserHistory = async (subjectUuid?: string) => {
     throw error;
   }
 };
+
+export const getSpecificProductHistory = async (productUuid: string) => {
+  try {
+    const response = await apiClient.get(`/products/${productUuid}/view-history`);
+    return response.data.product_history;
+  } catch (error){
+    console.error('Failed to fetch this product history', error)
+    throw error
+  }
+}

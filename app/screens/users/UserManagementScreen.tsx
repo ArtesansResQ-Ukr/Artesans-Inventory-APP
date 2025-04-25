@@ -3,14 +3,14 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Button, Card, Divider } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { AppStackParamList } from '../../navigation/types/navigation';
+import { UserManagementStackParamList } from '../../navigation/types/navigation';
 
 /**
  * UserManagementScreen component
  * Screen for user management functionality
  */
 const UserManagementScreen = () => {
-  const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
+  const navigation = useNavigation<StackNavigationProp<UserManagementStackParamList>>();
 
   return (
     <ScrollView style={styles.scrollContainer}>
@@ -45,11 +45,10 @@ const UserManagementScreen = () => {
           <Card.Actions style={styles.cardActions}>
             <Button 
               mode="contained" 
-              onPress={() => {}}
+              onPress={() => navigation.navigate('ViewAllGroups')}
               style={styles.button}
-              disabled
             >
-              Coming Soon
+              Manage Groups
             </Button>
           </Card.Actions>
         </Card>

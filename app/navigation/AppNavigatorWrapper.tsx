@@ -4,6 +4,7 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import AppNavigator, { AuthNavigator } from './AppNavigator';
+import { navigationRef } from './navigationRef';
 
 /**
  * Navigation wrapper that uses AuthContext for auth state
@@ -40,7 +41,7 @@ const AppNavigatorWrapper = () => {
   };
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
       <View style={isWeb ? styles.webRootContainer : styles.mobileRootContainer}>
         {isAuthenticated ? <AppNavigator /> : <AuthNavigator />}
       </View>

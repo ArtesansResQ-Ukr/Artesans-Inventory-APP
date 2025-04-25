@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { 
   Text, 
   Card, 
@@ -13,8 +13,8 @@ import {
 } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { AppStackParamList } from '../../navigation/types/navigation';
-import { getUsers } from '../../services/api/userApi';
+import { UserManagementStackParamList } from '../../navigation/types/navigation';
+import { getUsersByUuid, getGroupUserIn } from '../../services/api/userApi';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface User {
@@ -33,26 +33,30 @@ interface User {
 }
 
 interface Group {
-  uuid: string;
-  name: string;
+  user_uuid: string;
+  group_uuid: string;
+  group_name: string;
 }
 
-type ProfileScreenRouteProp = RouteProp<AppStackParamList, 'ProfileScreen'>;
+type ProfileScreenRouteProp = RouteProp<UserManagementStackParamList, 'ProfileScreen'>;
 
 const ProfileScreen = () => {
   const theme = useTheme();
-  const navigation = useNavigation<StackNavigationProp<AppStackParamList>>();
+  const navigation = useNavigation<StackNavigationProp<UserManagementStackParamList>>();
   const route = useRoute<ProfileScreenRouteProp>();
   const { user: currentUser } = useAuth();
   const { userId } = route.params;
   
   const [user, setUser] = useState<User | null>(null);
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [userGroup, setUserGroup] = useState<Group | null>(null);
+  const [groupLoading, setGroupLoading] = useState(false);
+  const [groupError, setGroupError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [productHistoryExpanded, setProductHistoryExpanded] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
-
+  const [isVisible, setIsVisible] = useState(true);
+  
 
   useEffect(() => {
     fetchData();
@@ -63,30 +67,62 @@ const ProfileScreen = () => {
       setLoading(true);
       setError(null);
       
-      // Fetch user and groups data in parallel
-      const [userData] = await Promise.all([
-        getUsers(userId),
-      ]);
+      // Fetch user data
+      const result = await getUsersByUuid(userId);
+      if (result.error) {
+        if (result.error.status === 403) {
+          setPermissionDenied(true);
+        }
+        setError(result.error.message);
+        return;
+      }
       
-      setUser(userData);
+      if (result.data) {
+        setUser(result.data);
+      } else {
+        setError('No user data received from server');
+        return;
+      }
+      
+      // Fetch user's group
+      fetchUserGroup(userId);
     } catch (error) {
       console.error('Error fetching user data:', error);
-      
-      // Check if error is permission denied (403)
-      if (error instanceof Error && 'response' in error && 
-          typeof error.response === 'object' && 
-          error.response !== null && 
-          'status' in error.response && 
-          error.response.status === 403) {
-        setPermissionDenied(true);
-      } else {
-        setError('Failed to load user profile. Please try again.');
-      }
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
-
+  
+  const fetchUserGroup = async (userId: string) => {
+    try {
+      setGroupLoading(true);
+      setGroupError(null);
+      
+      const result = await getGroupUserIn(userId);
+      if (result.error) {
+        // 404 error means user is not in any group - this is a valid state
+        if (result.error.status === 404) {
+          setUserGroup(null);
+        } else {
+          setGroupError(result.error.message);
+        }
+        return;
+      }
+      
+      if (result.data) {
+        setUserGroup(result.data);
+      } else {
+        // This handles the case where API returns an empty response
+        setUserGroup(null);
+      }
+    } catch (error) {
+      console.error('Error fetching user group:', error);
+      setGroupError('An unexpected error occurred fetching group information.');
+    } finally {
+      setGroupLoading(false);
+    }
+  };
 
   // Navigate to update user screen
   const navigateToUpdateUser = () => {
@@ -155,11 +191,11 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      {!hasUpdatePermission && (
+      {isVisible && (
         <Banner
           visible={true}
           icon="information"
-          actions={[{ label: 'Dismiss', onPress: () => {} }]}
+          actions={[{ label: 'Dismiss', onPress: () => setIsVisible(false) }]}
         >
           You only have permission to view this profile. Update functionality is limited to your own profile or users you manage.
         </Banner>
@@ -211,6 +247,20 @@ const ProfileScreen = () => {
               description={user.language_preference || 'Not set'}
               left={props => <List.Icon {...props} icon="translate" />}
             />
+            <Divider />
+            <List.Item
+              title="Group"
+              description={
+                groupLoading 
+                  ? 'Loading group information...' 
+                  : groupError 
+                    ? 'Error loading group information' 
+                    : userGroup 
+                      ? userGroup.group_name 
+                      : 'Not assigned to any group'
+              }
+              left={props => <List.Icon {...props} icon="account-group" />}
+            />
           </Card.Content>
         </Card>
         
@@ -246,7 +296,7 @@ const ProfileScreen = () => {
           </View>
         </List.Accordion>
         
-        {hasUpdatePermission && (
+        {(
           <Button 
             mode="contained" 
             onPress={navigateToUpdateUser}

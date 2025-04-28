@@ -3,13 +3,15 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-n
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BiometricAuth from '../../components/auth/BiometricAuth';
-import { RootStackParamList } from '../../navigation/types/navigation';
+import { RootStackParamList, AuthStackParamList } from '../../navigation/types/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 
 type BiometricAuthScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type BiometricLoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 const BiometricAuthScreen: React.FC = () => {
   const navigation = useNavigation<BiometricAuthScreenNavigationProp>();
+  const LoginNavigation = useNavigation<BiometricLoginScreenNavigationProp>();
   const { authenticateWithBiometrics } = useAuth();
   const [status, setStatus] = useState<string>('');
 
@@ -36,7 +38,7 @@ const BiometricAuthScreen: React.FC = () => {
         },
         {
           text: 'Back to Login',
-          onPress: () => navigation.navigate('Login'),
+          onPress: () => LoginNavigation.navigate('Login'),
           style: 'cancel',
         },
       ]

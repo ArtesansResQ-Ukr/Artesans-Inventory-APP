@@ -1,7 +1,7 @@
 import apiClient from './apiClient';
 import { API_URL } from '@env';
-import axios from 'axios';
-
+import axios, { AxiosError } from 'axios';
+import { Alert } from 'react-native';
 // Define types
 interface Product {
   uuid?: string;
@@ -157,23 +157,62 @@ export const deleteProduct = async (uuid: string) => {
 /**
  * Fetches all products with optional filters
  * 
- * @param groupUuid - Optional group UUID to filter by
  * @param productUuid - Optional product UUID to filter by
  * @returns Promise with products list
  */
-export const getProducts = async (groupUuid?: string, productUuid?: string) => {
+export const getProducts = async (productUuid?: string) => {
   try {
     const params: Record<string, string> = {};
-    if (groupUuid) params.group_uuid = groupUuid;
     if (productUuid) params.product_uuid = productUuid;
     
     const response = await apiClient.get('/products/view', { params });
     return response.data.products;
-  } catch (error) {
-    console.error('Failed to fetch products:', error);
-    throw error;
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response) {
+      console.error('Failed to fetch products:', error);
+      const backend_message = error.response.data.detail || 'An unknown error occurred';
+      Alert.alert('Error', backend_message);
+      throw backend_message;
+    } else {
+      console.error('Failed to fetch products:', error);
+      throw error;
+    }
   }
 };
+
+export const getProductQuantityInAllGroups = async (productUuid: string) => {
+  try {
+    const response = await apiClient.get(`/products/${productUuid}/view-quantity-groups`);
+    return response.data.product_groups_links;
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response) {
+      console.error('Failed to fetch products:', error);
+      const backend_message = error.response.data.detail || 'An unknown error occurred';
+      Alert.alert('Error', backend_message);
+      throw backend_message;
+    } else {
+      console.error('Failed to fetch products:', error);
+      throw error;
+    }
+  }
+};
+export const getProductQuantityInOneGroup = async (productUuid: string, groupUuid: string) => {
+  try {
+    const response = await apiClient.get(`/products/${productUuid}/view-quantity-groups?group_uuid=${groupUuid}`);
+    return response.data.product_groups_links;
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response) {
+      console.error('Failed to fetch products:', error);
+      const backend_message = error.response.data.detail || 'An unknown error occurred';
+      Alert.alert('Error', backend_message);
+      throw backend_message;
+    } else {
+      console.error('Failed to fetch products:', error);
+      throw error;
+    }
+  }
+};
+
 
 /**
  * Fetches product user history with optional user filter

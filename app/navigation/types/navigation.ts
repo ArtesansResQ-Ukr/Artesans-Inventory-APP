@@ -25,7 +25,7 @@ export type InventoryStackParamList = {
   };
   ProductDetail: {
     productUuid: string;
-    groupUuid: string;
+    userUuid?: string;
   };
   ProductHistoryDetail: {
     productUuid: string;
@@ -53,6 +53,7 @@ export type UserManagementStackParamList = {
 export type AccountStackParamList = {
   MyAccountScreen: undefined;
   SecuritySettings: undefined;
+  ChangePassword: undefined;
 };
 
 // Define the TabNavigator types using NavigatorScreenParams to support nested navigation

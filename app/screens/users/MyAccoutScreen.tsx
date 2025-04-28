@@ -212,9 +212,12 @@ export const MyAccountScreen = () => {
             <View style={styles.container}>
                 <Text>Permissions</Text>
                 <View style={styles.chipsContainer}>
-                <Chip style={styles.permissionChip}>
-                    {editedUser?.permissions?.join(', ')}</Chip>
-                    </View>
+                    {editedUser?.permissions?.map((permission, index) => (
+                        <Chip key={index} style={styles.permissionChip}>
+                            {permission}
+                        </Chip>
+                    ))}
+                </View>
             </View>
             
 
@@ -254,6 +257,7 @@ export const MyAccountScreen = () => {
 const styles = StyleSheet.create({
     container: {
         padding: 20,
+        marginTop: 50,
     },
     loadingContainer: {
         flex: 1,
@@ -292,10 +296,12 @@ const styles = StyleSheet.create({
     },
     chipsContainer: {
         flexDirection: 'row',
-        flexWrap: 'nowrap',
-      },
-      permissionChip: {
+        flexWrap: 'wrap',
+        marginTop: 8,
+    },
+    permissionChip: {
         margin: 4,
-      },
+        backgroundColor: '#e0f2f1',
+    },
 });
 

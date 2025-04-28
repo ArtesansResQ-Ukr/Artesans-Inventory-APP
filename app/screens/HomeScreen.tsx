@@ -57,6 +57,7 @@ const HomeScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 50,
     padding: 16,
   },
   greeting: {

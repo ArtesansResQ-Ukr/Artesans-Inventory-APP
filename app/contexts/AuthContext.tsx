@@ -39,7 +39,8 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<boolean>;
-  resetPassword: (token: string, newPassword: string) => Promise<boolean>;
+  requestNewPassword: (email: string) => Promise<boolean>;
+  changePassword: (old_password: string, new_password: string, confirm_new_password: string) => Promise<boolean>;
   requestOTP: (email: string) => Promise<boolean>;
   verifyOTP: (email: string, otp: string) => Promise<boolean>;
   enableBiometricLogin: (enable: boolean) => Promise<boolean>;
@@ -56,7 +57,8 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => false,
   logout: async () => {},
   forgotPassword: async () => false,
-  resetPassword: async () => false,
+  requestNewPassword: async () => false,
+  changePassword: async () => false,
   requestOTP: async () => false,
   verifyOTP: async () => false,
   enableBiometricLogin: async () => false,
@@ -486,41 +488,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
   };
+  
+   // Request new password function
+   const requestNewPassword = async (email: string): Promise<boolean> => {
+    try {
+      console.log('AuthContext: Requesting new password');
+      const response = await apiClient.post(`/auth/request-new-password?email=${email}`);
+      console.log('AuthContext: New password request response received', response.status);
+      return true;
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error.response) {
+        console.error('AuthContext: New password request error with response:', error.response.status, error.response.data);
+        const backendMessage = error.response.data?.detail || 'An unknown error occurred';
+        Alert.alert('New Password Request Error', backendMessage);
+      } else {
+        console.error('AuthContext: New password request error:', error);
+        Alert.alert('New Password Request Error', 'An unexpected error occurred');
+      }
+      return false;
+    }
+  };
+
+
 
   // Forgot password function - no changes needed
-  const forgotPassword = async (email: string): Promise<boolean> => {
+  const changePassword = async (
+    old_password: string,
+    new_password: string,
+    confirm_new_password: string
+  ): Promise<boolean> => {
     try {
-      console.log(`AuthContext: Requesting password reset for email: ${email}`);
-      const response = await apiClient.post(`/auth/password-reset/request`,{email});
-      console.log('AuthContext: Password reset request response received', response.status);
-      return response.status === 200;
+      const response = await apiClient.post('/auth/password-change', {
+        old_password,
+        new_password,
+        confirm_new_password});
+  
+      console.log('Password changed successfully', response.data);
+      return true;
+  
     } catch (error: unknown) {
       if (error instanceof AxiosError && error.response) {
-        console.error('AuthContext: Password reset error with response:', error.response.status, error.response.data);
+        console.error('Change Password error:', error.response.status, error.response.data);
+  
+        // Show backend error detail nicely
+        const backendMessage = error.response.data?.detail || 'An unknown error occurred';
+  
+        Alert.alert('Password Change Error', backendMessage);
       } else {
-        console.error('AuthContext: Password reset error:', error);
+        console.error('Unexpected Password Change error:', error);
+        Alert.alert('Password Change Error', 'An unexpected error occurred');
       }
       return false;
     }
   };
 
-  // Reset password function - no changes needed
-  const resetPassword = async (token: string, newPassword: string): Promise<boolean> => {
-    try {
-      console.log('AuthContext: Confirming password reset');
-      const response = await apiClient.post(`/auth/password-reset/confirm`,{token, new_password: newPassword});
-      console.log('AuthContext: Password reset confirmation response received', response.status);
-      return response.status === 200;
-    } catch (error: unknown) {
-      if (error instanceof AxiosError && error.response) {
-        console.error('AuthContext: Password reset confirmation error with response:', error.response.status, error.response.data);
-      } else {
-        console.error('AuthContext: Password reset confirmation error:', error);
-      }
-      return false;
-    }
-  };
-
+ 
   return (
     <AuthContext.Provider
       value={{
@@ -531,8 +553,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         biometricEnabled,
         login,
         logout,
-        forgotPassword,
-        resetPassword,
+        forgotPassword: requestNewPassword,
+        requestNewPassword,
+        changePassword,
         requestOTP,
         verifyOTP,
         enableBiometricLogin,

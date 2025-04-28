@@ -21,7 +21,6 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [
@@ -30,7 +29,8 @@
       ]
     },
     "web": {
-      "proxy": "http://<192.168.0.215>:<8000>"
+      "bundler": "metro",
+      "proxy": "http://192.168.0.14:8000"
     },
     "plugins": [
       [

@@ -79,6 +79,7 @@ const UserManagementScreen = () => {
 const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
+    marginTop: 50,
   },
   container: {
     flex: 1,

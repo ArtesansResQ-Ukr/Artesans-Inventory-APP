@@ -86,7 +86,7 @@ export const addUserToGroup = async (group_uuid: string, user_uuid: string): Pro
 
 export const removeUserFromGroup = async (group_uuid: string, user_uuid: string): Promise<ApiResponse<{message: string; group: Group; user: any}>> => {
     try {
-        const response = await apiClient.post(`/groups/${group_uuid}/remove-user?group_uuid=${group_uuid}&user_uuid=${user_uuid}`);
+        const response = await apiClient.post(`/groups/${group_uuid}/remove-user?user_uuid=${user_uuid}`);
         return { data: response.data };
     } catch (error: any) {
         console.error('Failed to remove user from group:', error);

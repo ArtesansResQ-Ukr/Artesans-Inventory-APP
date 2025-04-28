@@ -4,7 +4,7 @@ import { apiConfig } from '../../config/apiConfig';
 import { Platform } from 'react-native';
 // Import navigation for redirection
 import { CommonActions } from '@react-navigation/native';
-import { navigationRef } from '../navigation/navigationRef';
+import { navigationRef } from '../../navigation/navigationRef';
 
 //This communicates with the backend
 

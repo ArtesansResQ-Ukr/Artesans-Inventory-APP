@@ -10,7 +10,7 @@ import {
   addUserToGroup,
   getRolesInGroup
 } from '../../services/api/groupApi';
-
+import { searchUsers } from '../../services/api/userApi';
 type UpdateGroupNavigationProp = StackNavigationProp<UserManagementStackParamList, 'UpdateGroup'>;
 type UpdateGroupRouteProp = RouteProp<UserManagementStackParamList, 'UpdateGroup'>;
 
@@ -27,7 +27,7 @@ interface Role {
   permissions: string[];
 }
 
-const UpdateGroup = () => {
+const UpdateGroupScreen = () => {
   const navigation = useNavigation<UpdateGroupNavigationProp>();
   const route = useRoute<UpdateGroupRouteProp>();
   const { groupId, groupName } = route.params;
@@ -37,6 +37,7 @@ const UpdateGroup = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newUserUuid, setNewUserUuid] = useState('');
+  const [searchUsername, setSearchUsername] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [permissionError, setPermissionError] = useState(false);
@@ -83,6 +84,8 @@ const UpdateGroup = () => {
     }
   };
 
+  
+
   const handleRemoveUser = async (userId: string) => {
     try {
       const response = await removeUserFromGroup(groupId, userId);
@@ -99,23 +102,52 @@ const UpdateGroup = () => {
   };
 
   const handleAddUser = async () => {
-    if (!newUserUuid.trim()) {
-      showSnackbar('Please enter a valid user ID');
+    if (!searchUsername.trim()) {
+      showSnackbar('Please enter a valid username');
       return;
     }
 
     try {
-      const response = await addUserToGroup(groupId, newUserUuid);
+      // First search for user by username
+      const searchResponse = await searchUsers({
+        username: searchUsername,
+        first_name: '',
+        last_name: '',
+        email: '',
+        arq_id: ''
+      });
+
+      if (!searchResponse.data || searchResponse.data.length === 0) {
+        showSnackbar('No user found with that username');
+        return;
+      }
+
+      if (searchResponse.data.length > 1) {
+        showSnackbar('Multiple users found. Please provide a more specific username');
+        return;
+      }
+
+      // Get the user's data from search results
+      const userData = searchResponse.data[0];
+      const userUuid = userData.uuid;
+      
+      // Now add the user to the group using their UUID
+      const response = await addUserToGroup(groupId, userUuid);
       if (response.data) {
-        // Add the new user to the list
+        // Since the API response might have empty user data, use the data we got from search
         const newUser = {
-          uuid: response.data.user.uuid,
-          username: response.data.user.username,
-          first_name: response.data.user.first_name,
-          last_name: response.data.user.last_name
+          uuid: userData.uuid,
+          username: userData.username,
+          first_name: userData.first_name || '',
+          last_name: userData.last_name || ''
         };
-        setUsers([...users, newUser]);
-        setNewUserUuid('');
+        
+        // Check if user is already in the list to avoid duplicates
+        if (!users.some(user => user.uuid === newUser.uuid)) {
+          setUsers([...users, newUser]);
+        }
+        
+        setSearchUsername('');
         showSnackbar('User added successfully');
       } else if (response.error) {
         showSnackbar(response.error.message);
@@ -235,10 +267,11 @@ const UpdateGroup = () => {
           
           <View style={styles.addUserSection}>
             <TextInput
-              label="Add User (UUID)"
-              value={newUserUuid}
-              onChangeText={setNewUserUuid}
+              label="Add User (Username)"
+              value={searchUsername}
+              onChangeText={setSearchUsername}
               style={styles.input}
+              placeholder="Enter username to search"
             />
             <Button 
               mode="contained" 
@@ -397,4 +430,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default UpdateGroup; 
+export default UpdateGroupScreen; 

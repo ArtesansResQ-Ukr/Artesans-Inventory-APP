@@ -27,6 +27,11 @@ import NewProductReviewScreen from '../screens/products/NewProductReviewScreen';
 import ExistingProductMatchScreen from '../screens/products/ExistingProductMatchScreen';
 import ProductListScreen from '../screens/products/ProductListScreen';
 import ProductHistoryScreen from '../screens/products/ProductHistoryScreen';
+import ProductDetailScreen from '../screens/products/ProductDetailScreen';
+import ViewAllGroupsScreen from '../screens/groups/ViewAllGroupsScreen';
+import UpdateGroupScreen from '../screens/groups/UpdateGroupScreen';
+import CreateGroupScreen from '../screens/groups/CreateGroupScreen';
+import ChangePasswordScreen from '../screens/settings/ChangePasswordScreen';
 
 // Create stack navigators for each tab
 const HomeStack = createStackNavigator<HomeStackParamList>();
@@ -83,6 +88,11 @@ const InventoryStackScreen = () => (
       component={ProductHistoryScreen}
       options={{ title: 'Product History' }}
     />
+    <InventoryStack.Screen 
+      name="ProductDetail" 
+      component={ProductDetailScreen}
+      options={{ title: 'Product Details' }}
+    />
   </InventoryStack.Navigator>
 );
 
@@ -114,6 +124,21 @@ const UserManagementStackScreen = () => (
       component={ProfileScreen}
       options={{ title: 'User Profile' }}
     />
+    <UserManagementStack.Screen 
+      name="ViewAllGroups" 
+      component={ViewAllGroupsScreen}
+      options={{ title: 'All Groups' }}
+    />
+    <UserManagementStack.Screen 
+      name="CreateGroup" 
+      component={CreateGroupScreen}
+      options={{ title: 'Create Group' }}
+    />
+    <UserManagementStack.Screen 
+      name="UpdateGroup" 
+      component={UpdateGroupScreen}
+      options={{ title: 'Update Group' }}
+    />
   </UserManagementStack.Navigator>
 );
 
@@ -129,6 +154,11 @@ const AccountStackScreen = () => (
       name="SecuritySettings" 
       component={SecuritySettingsScreen}
       options={{ title: 'Security Settings' }}
+    />
+    <AccountStack.Screen 
+      name="ChangePassword" 
+      component={ChangePasswordScreen}
+      options={{ title: 'Change Password' }}
     />
   </AccountStack.Navigator>
 );
@@ -189,6 +219,7 @@ const TabNavigator = () => {
           height: isWeb ? 60 : 70,
           paddingBottom: isWeb ? 10 : 20,
           paddingTop: isWeb ? 10 : 5,
+          marginBottom: isWeb ? 10 : 10,
           // Additional web-specific styles
           ...(isWeb && {
             borderTop: `1px solid ${theme.colors.outline}`,

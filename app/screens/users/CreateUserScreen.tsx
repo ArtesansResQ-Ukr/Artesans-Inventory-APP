@@ -27,11 +27,7 @@ import { UserManagementStackParamList } from '../../navigation/types/navigation'
 import { createUser } from '../../services/api/userApi';
 import { getAllGroups } from '../../services/api/groupApi';
 import DropDownPicker from 'react-native-dropdown-picker';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring
-} from 'react-native-reanimated';
+
 
 type CreateUserScreenNavigationProp = StackNavigationProp<UserManagementStackParamList>;
 
@@ -73,41 +69,6 @@ const CreateUserScreen = () => {
     { label: 'Ukrainian', value: 'uk' }
   ]);
 
-  // Animation values
-  const translateY = useSharedValue(0);
-  const opacity = useSharedValue(1);
-
-  // Animated styles
-  const contentAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: translateY.value }],
-      opacity: opacity.value
-    };
-  });
-
-  useEffect(() => {
-    // Start entry animation
-    translateY.value = withSpring(0, { damping: 15 });
-    opacity.value = withSpring(1);
-    
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      () => {
-        translateY.value = withSpring(-50, { damping: 15 });
-      }
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {
-        translateY.value = withSpring(0, { damping: 15 });
-      }
-    );
-
-    return () => {
-      keyboardDidHideListener.remove();
-      keyboardDidShowListener.remove();
-    };
-  }, []);
 
   // Update form data
   const updateField = (field: keyof UserCreate, value: string) => {
@@ -163,7 +124,7 @@ const CreateUserScreen = () => {
       const response = await createUser(userData);
       
       // Show success message
-      setSuccessMessage(response.data?.message || 'User not created');
+      setSuccessMessage(response.data?.message || 'User created successfully');
       setTempPassword(response.data?.temp_password || '');
       setSuccessDialogVisible(true);
       
@@ -207,7 +168,7 @@ const CreateUserScreen = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoidView}
         >
-          <Animated.View style={[styles.content, contentAnimatedStyle]}>
+          <View style={styles.content}>
             <ScrollView 
               style={styles.scrollView}
               contentContainerStyle={styles.scrollContent}
@@ -320,7 +281,7 @@ const CreateUserScreen = () => {
                 </Button>
               </View>
             </ScrollView>
-          </Animated.View>
+          </View>
         </KeyboardAvoidingView>
 
         {/* Success Dialog */}

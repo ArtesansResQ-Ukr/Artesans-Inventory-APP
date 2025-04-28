@@ -174,6 +174,21 @@ export const createUser = async (userData: UserCreate): Promise<ApiResponse<{mes
     }
 };
 
+export const getUserPermissions = async (user_uuid: string): Promise<ApiResponse<{permissions: string[]}>> => {
+    try {
+        const response = await apiClient.get(`/users/${user_uuid}/view-permissions`);
+        return { data: response.data };
+    } catch (error: any) {
+        console.error('Failed to get user permissions:', error);
+        return { 
+            error: {
+                status: error?.response?.status || 500,
+                message: extractErrorMessage(error)
+            }
+        };
+    }
+};
+
 export const addPermissions = async (permissions_uuid: string, user_uuid: string): Promise<ApiResponse<{message: string; user: User; permissions_uuid: string}>> => {
     try {
         const response = await apiClient.post(`/users/add_permissions?permissions_uuid=${permissions_uuid}&user_uuid=${user_uuid}`);

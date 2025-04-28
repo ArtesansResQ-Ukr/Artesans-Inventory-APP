@@ -12,12 +12,12 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/types/navigation';
+import { AccountStackParamList } from '../../navigation/types/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Ionicons } from '@expo/vector-icons';
 
-type SecuritySettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type SecuritySettingsScreenNavigationProp = NativeStackNavigationProp<AccountStackParamList>;
 
 const SecuritySettingsScreen: React.FC = () => {
   const navigation = useNavigation<SecuritySettingsScreenNavigationProp>();
@@ -160,7 +160,7 @@ const SecuritySettingsScreen: React.FC = () => {
           <TouchableOpacity 
             style={styles.settingButton}
             // Placeholder for password change functionality
-            onPress={() => navigation.navigate('Home')}
+            onPress={() => navigation.navigate('ChangePassword')}
           >
             <View style={styles.settingTextContainer}>
               <View style={styles.iconContainer}>

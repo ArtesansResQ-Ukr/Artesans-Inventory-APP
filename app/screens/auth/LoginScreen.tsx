@@ -29,7 +29,7 @@ const LoginScreen: React.FC = () => {
   const [tokenExpiredMessage, setTokenExpiredMessage] = useState<string | null>(null);
 
   const navigation = useNavigation<LoginScreenNavigationProp>();
-  const { login, forgotPassword } = useAuth();
+  const { login, requestNewPassword } = useAuth();
 
   // Check for token expiration error in navigation params
   useEffect(() => {
@@ -89,7 +89,7 @@ const LoginScreen: React.FC = () => {
     }
   };
 
-  const handleForgotPassword = async () => {
+  const HandleNewPasswordRequest = async () => {
     if (!forgotPasswordEmail) {
       Alert.alert('Error', 'Please enter your email address');
       return;
@@ -103,10 +103,10 @@ const LoginScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const success = await forgotPassword(forgotPasswordEmail);
+      const success = await requestNewPassword(forgotPasswordEmail);
       
       if (success) {
-        Alert.alert('Success', 'Password reset instructions have been sent to your email');
+        Alert.alert('Success', 'Please check your email for your new password');
         setShowForgotPassword(false);
       } else {
         Alert.alert('Error', 'Failed to send password reset email');
@@ -220,7 +220,7 @@ const LoginScreen: React.FC = () => {
               </View>
 
               <TouchableOpacity
-                onPress={handleForgotPassword}
+                onPress={HandleNewPasswordRequest}
                 style={styles.loginButton}
                 disabled={isLoading}
               >

@@ -13,7 +13,7 @@ interface Group {
   name: string;
 }
 
-const ViewAllGroups = () => {
+const ViewAllGroupsScreen = () => {
   const navigation = useNavigation<ViewAllGroupsNavigationProp>();
   const [groups, setGroups] = useState<Group[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<Group[]>([]);
@@ -224,4 +224,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ViewAllGroups; 
+export default ViewAllGroupsScreen; 

@@ -28,11 +28,11 @@ const ProductListScreen = () => {
   }, []);
 
   // Fetch products from API
-  const fetchProducts = async (groupUuid?: string, productUuid?: string) => {
+  const fetchProducts = async ( productUuid?: string) => {
     try {
       setLoading(true);
       setError(null);
-      const result = await getProducts(groupUuid, productUuid);
+      const result = await getProducts(productUuid);
       console.log('Product data sample:', result[0]);
       setProducts(result);
       setFilteredProducts(result);
@@ -122,7 +122,7 @@ const ProductListScreen = () => {
 
   // Render product item
   const renderProductItem = ({ item }: { item: any }) => (
-    <Card style={styles.card} onPress={() => navigation.navigate('ProductDetail', { productUuid: item.uuid , groupUuid: item.group_uuid })}>
+    <Card style={styles.card} onPress={() => navigation.navigate('ProductDetail', { productUuid: item.uuid , userUuid: item.user_uuid })}>
       <Card.Content>
         <Text variant="titleLarge">{item.name}</Text>
         <Text variant="bodyMedium">Category: {item.category}</Text>

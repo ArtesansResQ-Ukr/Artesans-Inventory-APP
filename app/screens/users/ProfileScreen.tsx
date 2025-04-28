@@ -14,7 +14,7 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { UserManagementStackParamList } from '../../navigation/types/navigation';
-import { getUsersByUuid, getGroupUserIn } from '../../services/api/userApi';
+import { getUsersByUuid, getGroupUserIn, getUserPermissions } from '../../services/api/userApi';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface User {
@@ -49,6 +49,9 @@ const ProfileScreen = () => {
   
   const [user, setUser] = useState<User | null>(null);
   const [userGroup, setUserGroup] = useState<Group | null>(null);
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const [permissionsError, setPermissionsError] = useState<string | null>(null);
   const [groupLoading, setGroupLoading] = useState(false);
   const [groupError, setGroupError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,6 +126,37 @@ const ProfileScreen = () => {
       setGroupLoading(false);
     }
   };
+
+  const fetchUserPermissions = async (userId: string) => {
+    try {
+      setPermissionsLoading(true);
+      setPermissionsError(null);
+      
+      const result = await getUserPermissions(userId);
+      if (result.error) {
+        // 404 error means user is not in any group - this is a valid state
+        if (result.error.status === 404) {
+          setUserPermissions([]);
+        } else {
+          setPermissionsError(result.error.message);
+        }
+        return;
+      }
+      
+      if (result.data) {
+        setUserPermissions(result.data.permissions);
+      } else {
+        // This handles the case where API returns an empty response
+        setUserPermissions([]);
+      }
+    } catch (error) {
+      console.error('Error fetching user permissions:', error);
+      setPermissionsError('An unexpected error occurred fetching permissions information.');
+    } finally {
+      setPermissionsLoading(false);
+    }
+  };
+  
 
   // Navigate to update user screen
   const navigateToUpdateUser = () => {
@@ -267,9 +301,9 @@ const ProfileScreen = () => {
         <Card style={styles.card}>
           <Card.Title title="Permissions" />
           <Card.Content>
-            {user.permissions && user.permissions.length > 0 ? (
+            {userPermissions && userPermissions.length > 0 ? (
               <View style={styles.permissionsContainer}>
-                {user.permissions.map((permission, index) => (
+                {userPermissions.map((permission, index) => (
                   <Chip key={index} style={styles.permissionChip}>
                     {permission}
                   </Chip>

@@ -56,7 +56,7 @@ export const getAllGroups = async (): Promise<ApiResponse<Group[]>> => {
 
 export const createGroup = async (name: string): Promise<ApiResponse<Group>> => {
     try {
-        const response = await apiClient.post('/groups/create', { name });
+        const response = await apiClient.post(`/groups/create?name=${name}`);
         return { data: response.data };
     } catch (error: any) {
         console.error('Failed to create group:', error);

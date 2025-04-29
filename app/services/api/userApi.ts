@@ -59,6 +59,15 @@ interface Group {
     group_name: string;
 }
 
+// Add a new interface for the updated API response
+interface UserGroups {
+    user_uuid: string;
+    groups: {
+        group_uuid: string;
+        group_name: string;
+    }[];
+}
+
 // Helper function to extract error messages
 const extractErrorMessage = (error: any): string => {
     if (error?.response?.data?.detail) {
@@ -219,7 +228,7 @@ export const removePermissions = async (permissions_uuid: string, user_uuid: str
     }
 };
 
-export const getGroupUserIn = async (uuid: string): Promise<ApiResponse<Group>> => {
+export const getGroupUserIn = async (uuid: string): Promise<ApiResponse<UserGroups>> => {
     try {
         const response = await apiClient.get(`/users/group-user-in?user_uuid=${uuid}`);
         return { data: response.data };

@@ -199,13 +199,33 @@ const ProductDetailScreen = () => {
       return timestamp;
     }
   };
+  const handleRefreshData = async () => {
+    // Refresh product details and history
+    const products = await getProducts();
+    const updatedProduct = products.find((p: Product) => p.uuid === productUuid);
+    if (updatedProduct) {
+      setProduct(updatedProduct);
+      
+      // Get updated group quantities
+      const groupQuantities = await getProductQuantityInAllGroups(productUuid);
+      if (groupQuantities && groupQuantities.length > 0) {
+        setProduct(prev => ({
+          ...prev!,
+          groups: groupQuantities
+        }));
+      }
+    }
+    
+    const historyData = await getSpecificProductHistory(productUuid);
+    setHistory(historyData);
+  };
 
   // Handle quantity increase
   const handleIncreaseQuantity = async () => {
     if (!product) return;
     
-    const quantityNum = parseInt(quantity) || 1;
-    if (quantityNum <= 0) {
+    const quantityNum = parseInt(quantity, 10);
+    if (isNaN(quantityNum) || quantityNum <= 0) {
       Alert.alert('Invalid Quantity', 'Please enter a positive number');
       return;
     }
@@ -214,25 +234,7 @@ const ProductDetailScreen = () => {
       setLoading(true);
       await increaseProductQuantity(product.uuid, quantityNum);
       Alert.alert('Success', `Added ${quantityNum} units to inventory`);
-      
-      // Refresh product details and history
-      const products = await getProducts();
-      const updatedProduct = products.find((p: Product) => p.uuid === productUuid);
-      if (updatedProduct) {
-        setProduct(updatedProduct);
-        
-        // Get updated group quantities
-        const groupQuantities = await getProductQuantityInAllGroups(productUuid);
-        if (groupQuantities && groupQuantities.length > 0) {
-          setProduct(prev => ({
-            ...prev!,
-            groups: groupQuantities
-          }));
-        }
-      }
-      
-      const historyData = await getSpecificProductHistory(productUuid);
-      setHistory(historyData);
+      handleRefreshData();
     } catch (error) {
       console.error('Error increasing quantity:', error);
       Alert.alert('Error', 'Failed to increase quantity');
@@ -260,25 +262,7 @@ const ProductDetailScreen = () => {
       setLoading(true);
       await decreaseProductQuantity(product.uuid, quantityNum);
       Alert.alert('Success', `Removed ${quantityNum} units from inventory`);
-      
-      // Refresh product details and history
-      const products = await getProducts();
-      const updatedProduct = products.find((p: Product) => p.uuid === productUuid);
-      if (updatedProduct) {
-        setProduct(updatedProduct);
-        
-        // Get updated group quantities
-        const groupQuantities = await getProductQuantityInAllGroups(productUuid);
-        if (groupQuantities && groupQuantities.length > 0) {
-          setProduct(prev => ({
-            ...prev!,
-            groups: groupQuantities
-          }));
-        }
-      }
-      
-      const historyData = await getSpecificProductHistory(productUuid);
-      setHistory(historyData);
+      handleRefreshData();
     } catch (error) {
       console.error('Error decreasing quantity:', error);
       Alert.alert('Error', 'Failed to decrease quantity');
@@ -298,6 +282,7 @@ const ProductDetailScreen = () => {
       
       // Navigate back after successful deletion
       navigation.goBack();
+      
     } catch (error) {
       console.error('Error deleting product:', error);
       Alert.alert('Error', 'Failed to delete product');

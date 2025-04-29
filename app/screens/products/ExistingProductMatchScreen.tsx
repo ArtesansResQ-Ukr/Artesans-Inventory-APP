@@ -111,8 +111,8 @@ const ExistingProductMatchScreen = () => {
       return;
     }
     
-    const quantityNum = parseInt(quantity) || 0;
-    if (quantityNum <= 0) {
+    const quantityNum = parseInt(quantity, 10);
+    if (isNaN(quantityNum) || quantityNum <= 0) {
       alert('Please enter a valid quantity');
       return;
     }
@@ -249,9 +249,14 @@ const ExistingProductMatchScreen = () => {
       <TextInput
         label="Quantity"
         value={convertedProduct?.quantity.toString()}
-        onChangeText={(text) => 
-          setConvertedProduct(prev => prev ? {...prev, quantity: parseInt(text) || 0} : null)
-        }
+        onChangeText={(text) => {
+          const parsed = parseInt(text, 10)
+          if (!isNaN(parsed)) {
+            setConvertedProduct(prev => prev ? {...prev, quantity: parsed} : null)
+          } else {
+            alert('Please enter a valid quantity')
+          }
+        }}
         keyboardType="numeric"
         style={styles.input}
       />

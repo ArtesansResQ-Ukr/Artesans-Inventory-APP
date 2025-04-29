@@ -30,8 +30,8 @@ import ProductHistoryScreen from '../screens/products/ProductHistoryScreen';
 import ProductDetailScreen from '../screens/products/ProductDetailScreen';
 import ViewAllGroupsScreen from '../screens/groups/ViewAllGroupsScreen';
 import UpdateGroupScreen from '../screens/groups/UpdateGroupScreen';
-import CreateGroupScreen from '../screens/groups/CreateGroupScreen';
 import ChangePasswordScreen from '../screens/settings/ChangePasswordScreen';
+import CreateGroupScreen from '../screens/groups/CreateGroupScreen';
 
 // Create stack navigators for each tab
 const HomeStack = createStackNavigator<HomeStackParamList>();
@@ -132,7 +132,11 @@ const UserManagementStackScreen = () => (
     <UserManagementStack.Screen 
       name="CreateGroup" 
       component={CreateGroupScreen}
-      options={{ title: 'Create Group' }}
+      options={{ 
+        title: 'Create Group',
+        headerShown: true,
+        presentation: 'modal'
+      }}
     />
     <UserManagementStack.Screen 
       name="UpdateGroup" 

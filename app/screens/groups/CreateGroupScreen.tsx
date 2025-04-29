@@ -107,21 +107,27 @@ const CreateGroupScreen = () => {
   );
 };
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
   },
   content: {
-    width: Platform.OS === 'web' ? Math.min(width * 0.8, 500) : '90%',
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 20,
-    maxHeight: '80%',
+    minHeight: 300,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
+    elevation: 4,
   },
   contentContainer: {
     flex: 1,
@@ -140,7 +146,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   cancelButton: {
-    marginBottom: 20,
+    marginBottom: 8,
     paddingVertical: 8,
   },
   errorSnackbar: {

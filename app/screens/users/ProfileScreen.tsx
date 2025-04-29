@@ -38,6 +38,14 @@ interface Group {
   group_name: string;
 }
 
+interface UserGroups {
+  user_uuid: string;
+  groups: {
+    group_uuid: string;
+    group_name: string;
+  }[];
+}
+
 type ProfileScreenRouteProp = RouteProp<UserManagementStackParamList, 'ProfileScreen'>;
 
 const ProfileScreen = () => {
@@ -49,6 +57,7 @@ const ProfileScreen = () => {
   
   const [user, setUser] = useState<User | null>(null);
   const [userGroup, setUserGroup] = useState<Group | null>(null);
+  const [userGroups, setUserGroups] = useState<UserGroups | null>(null);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [permissionsLoading, setPermissionsLoading] = useState(false);
   const [permissionsError, setPermissionsError] = useState<string | null>(null);
@@ -106,6 +115,7 @@ const ProfileScreen = () => {
       if (result.error) {
         // 404 error means user is not in any group - this is a valid state
         if (result.error.status === 404) {
+          setUserGroups(null);
           setUserGroup(null);
         } else {
           setGroupError(result.error.message);
@@ -114,9 +124,24 @@ const ProfileScreen = () => {
       }
       
       if (result.data) {
-        setUserGroup(result.data);
+        // New API response format with groups array
+        setUserGroups(result.data);
+        
+        // Set the first group as userGroup for backward compatibility if available
+        const groups = result.data.groups;
+        if (groups && groups.length > 0) {
+          const firstGroup = groups[0];
+          setUserGroup({
+            user_uuid: result.data.user_uuid,
+            group_uuid: firstGroup.group_uuid,
+            group_name: firstGroup.group_name
+          });
+        } else {
+          setUserGroup(null);
+        }
       } else {
         // This handles the case where API returns an empty response
+        setUserGroups(null);
         setUserGroup(null);
       }
     } catch (error) {
@@ -289,8 +314,8 @@ const ProfileScreen = () => {
                   ? 'Loading group information...' 
                   : groupError 
                     ? 'Error loading group information' 
-                    : userGroup 
-                      ? userGroup.group_name 
+                    : userGroups && userGroups.groups && userGroups.groups.length > 0
+                      ? userGroups.groups.map(g => g.group_name).join(', ')
                       : 'Not assigned to any group'
               }
               left={props => <List.Icon {...props} icon="account-group" />}

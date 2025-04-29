@@ -40,6 +40,14 @@ interface Group {
   name: string;
 }
 
+interface UserGroups {
+  user_uuid: string;
+  groups: {
+    group_uuid: string;
+    group_name: string;
+  }[];
+}
+
 interface GroupedUsers {
   [key: string]: User[];
 }
@@ -130,18 +138,35 @@ const ViewAllUsers = () => {
           continue;
         }
         
-        let groupId = 'unknown';
         try {
           const groupResponse = await getGroupUserIn(user.uuid);
-          groupId = groupResponse?.data?.group_uuid || 'unknown';
+          
+          // Handle the new response format with groups array
+          if (groupResponse?.data?.groups && groupResponse.data.groups.length > 0) {
+            // Add user to each group they belong to
+            for (const group of groupResponse.data.groups) {
+              const groupId = group.group_uuid;
+              if (!newGroupedUsers[groupId]) {
+                newGroupedUsers[groupId] = [];
+              }
+              // Create a copy of the user to avoid reference issues
+              newGroupedUsers[groupId].push({...user});
+            }
+          } else {
+            // User not in any group
+            if (!newGroupedUsers['unknown']) {
+              newGroupedUsers['unknown'] = [];
+            }
+            newGroupedUsers['unknown'].push(user);
+          }
         } catch (error) {
           console.error('Failed to get group info:', error);
+          // On error, add to unknown group
+          if (!newGroupedUsers['unknown']) {
+            newGroupedUsers['unknown'] = [];
+          }
+          newGroupedUsers['unknown'].push(user);
         }
-        
-        if (!newGroupedUsers[groupId]) {
-          newGroupedUsers[groupId] = [];
-        }
-        newGroupedUsers[groupId].push(user);
       }
       
       // Sort users within each group

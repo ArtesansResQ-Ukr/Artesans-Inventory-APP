@@ -124,7 +124,10 @@ const ViewAllGroupsScreen = () => {
           <Text>No groups found</Text>
           <Button 
             mode="contained" 
-            onPress={() => navigation.navigate('CreateGroup')}
+            onPress={() => {
+              console.log('Create New Group button pressed - navigating to CreateGroup');
+              navigation.navigate('CreateGroup');
+            }}
             style={styles.createButton}
           >
             Create a New Group
@@ -143,7 +146,15 @@ const ViewAllGroupsScreen = () => {
       <FAB
         style={styles.fab}
         icon="plus"
-        onPress={() => navigation.navigate('CreateGroup')}
+        onPress={() => {
+          console.log('FAB button pressed - navigating to CreateGroup');
+          try {
+            navigation.navigate('CreateGroup');
+            console.log('Navigation called successfully');
+          } catch (err) {
+            console.error('Navigation error:', err);
+          }
+        }}
       />
     </View>
   );

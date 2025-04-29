@@ -29,6 +29,7 @@ import { addUserToGroup, removeUserFromGroup, searchGroup } from '../../services
 import { useAuth } from '../../contexts/AuthContext';
 import { getAllGroups } from '../../services/api/groupApi';
 import DropDownPicker from 'react-native-dropdown-picker';
+import { MaterialIcons } from '@expo/vector-icons';
 
 
 interface UserUpdate {
@@ -51,6 +52,14 @@ interface Group {
   user_uuid: string;
   group_uuid: string;
   group_name: string;
+}
+
+interface UserGroups {
+  user_uuid: string;
+  groups: {
+    group_uuid: string;
+    group_name: string;
+  }[];
 }
 
 interface SearchGroupResult {
@@ -100,9 +109,6 @@ const UpdateUserScreen = () => {
   // Group state
   const [userGroup, setUserGroup] = useState<Group | null>(null);
   const [groupLoading, setGroupLoading] = useState(false);
-  const [groupSearchQuery, setGroupSearchQuery] = useState('');
-  const [groupSearchResult, setGroupSearchResult] = useState<SearchGroupResult | null>(null);
-  const [searchingGroup, setSearchingGroup] = useState(false);
   const [groupError, setGroupError] = useState<string | null>(null);
   
   // Language dropdown state
@@ -121,9 +127,11 @@ const UpdateUserScreen = () => {
     AVAILABLE_PERMISSIONS.map(perm => ({ label: perm, value: perm }))
   );
 
+  // State for groups dropdown
+  const [groupMenuVisible, setGroupMenuVisible] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<{uuid: string, name: string} | null>(null);
+  const [availableGroups, setAvailableGroups] = useState<{uuid: string, name: string}[]>([]);
 
-
-  
   // Check if user has permission to manage users
   const hasManagePermission = currentUser?.uuid === userId || 
     (currentUser?.permissions?.includes('manage_user') ?? false);
@@ -191,7 +199,18 @@ const UpdateUserScreen = () => {
       }
       
       if (result.data) {
-        setUserGroup(result.data);
+        // Handle the new API response format with groups array
+        if (result.data.groups && result.data.groups.length > 0) {
+          // Set the first group as userGroup for UI
+          const firstGroup = result.data.groups[0];
+          setUserGroup({
+            user_uuid: result.data.user_uuid,
+            group_uuid: firstGroup.group_uuid,
+            group_name: firstGroup.group_name
+          });
+        } else {
+          setUserGroup(null);
+        }
       } else {
         setUserGroup(null);
       }
@@ -203,42 +222,47 @@ const UpdateUserScreen = () => {
     }
   };
   
-  const searchForGroup = async () => {
-    if (!groupSearchQuery.trim()) {
-      setSnackbarMessage('Please enter a group name to search');
-      setSnackbarVisible(true);
-      return;
-    }
-    
+  const fetchAvailableGroups = async () => {
     try {
-      setSearchingGroup(true);
+      setGroupLoading(true);
       setGroupError(null);
-      setGroupSearchResult(null);
       
-      const result = await searchGroup(groupSearchQuery);
+      // First, get the user's current groups
+      const userGroupsResult = await getGroupUserIn(userId);
+      const userGroupIds: string[] = [];
+      
+      if (userGroupsResult.data && userGroupsResult.data.groups) {
+        userGroupsResult.data.groups.forEach(group => {
+          userGroupIds.push(group.group_uuid);
+        });
+      }
+      
+      // Then get all available groups
+      const result = await getAllGroups();
       if (result.error) {
         setGroupError(result.error.message);
         return;
       }
       
       if (result.data) {
-        setGroupSearchResult(result.data);
-      } else {
-        setGroupError('No group found with that name');
+        // Filter out all groups the user is already in
+        const groups = result.data.filter(g => !userGroupIds.includes(g.uuid));
+        setAvailableGroups(groups.map(g => ({ uuid: g.uuid, name: g.name })));
       }
     } catch (error) {
-      console.error('Error searching for group:', error);
-      setGroupError('An unexpected error occurred searching for group.');
+      console.error('Error fetching available groups:', error);
+      setGroupError('An error occurred while fetching available groups.');
     } finally {
-      setSearchingGroup(false);
+      setGroupLoading(false);
     }
   };
-  
+
+  // Update the handleAddUserToGroup function
   const handleAddUserToGroup = () => {
-    if (!groupSearchResult || !userId) return;
+    if (!selectedGroup || !userId) return;
     
     // Check if user is already in this group
-    if (userGroup && userGroup.group_uuid === groupSearchResult.uuid) {
+    if (userGroup && userGroup.group_uuid === selectedGroup.uuid) {
       setSnackbarMessage('User is already in this group');
       setSnackbarVisible(true);
       return;
@@ -246,12 +270,11 @@ const UpdateUserScreen = () => {
     
     // Set up confirmation dialog
     setConfirmDialogTitle('Add to Group');
-    setConfirmDialogMessage(`Are you sure you want to add this user to the group? ${userGroup ? 'This will remove the user from their current group.' : ''}`);
+    setConfirmDialogMessage(`Are you sure you want to add this user to the group? ${userGroup}`);
     setConfirmDialogAction(() => async () => {
       try {
         setSaving(true);
-        
-        const result = await addUserToGroup(groupSearchResult.uuid, userId);
+        const result = await addUserToGroup(selectedGroup.uuid, userId);
         if (result.error) {
           setSnackbarMessage(result.error.message);
           setSnackbarVisible(true);
@@ -260,10 +283,10 @@ const UpdateUserScreen = () => {
           return;
         }
         
-        // Reset search and refresh group data
-        setGroupSearchQuery('');
-        setGroupSearchResult(null);
+        // Reset selection and refresh group data
+        setSelectedGroup(null);
         await fetchUserGroup(userId);
+        await fetchAvailableGroups();
         
         setSnackbarMessage('User added to group successfully');
         setSnackbarVisible(true);
@@ -279,13 +302,14 @@ const UpdateUserScreen = () => {
     
     setConfirmDialogVisible(true);
   };
-  
+
+  // Add handleRemoveUserFromGroup back
   const handleRemoveUserFromGroup = () => {
     if (!userGroup) return;
     
     // Set up confirmation dialog
     setConfirmDialogTitle('Remove from Group');
-    setConfirmDialogMessage('Are you sure you want to remove this user from their current group?');
+    setConfirmDialogMessage(`Are you sure you want to remove this user from the group "${userGroup.group_name}"?`);
     setConfirmDialogAction(() => async () => {
       try {
         setSaving(true);
@@ -301,6 +325,8 @@ const UpdateUserScreen = () => {
         
         // Refresh group data
         setUserGroup(null);
+        await fetchUserGroup(userId);
+        await fetchAvailableGroups();
         
         setSnackbarMessage('User removed from group successfully');
         setSnackbarVisible(true);
@@ -686,55 +712,57 @@ const UpdateUserScreen = () => {
                     </Card>
                   )}
                   
-                  {/* Search for Group */}
-                  <Text style={[styles.subheading, { marginTop: 16 }]}>
-                    Search for Group
-                  </Text>
-                  <View style={styles.groupSearchContainer}>
-                    <Searchbar
-                      placeholder="Search by group name"
-                      onChangeText={setGroupSearchQuery}
-                      value={groupSearchQuery}
-                      style={[styles.searchBar, (saving || searchingGroup) ? { opacity: 0.5 } : {}]}
-                      editable={!(saving || searchingGroup)}
-                    />
-                    
-                    <Button
-                      mode="contained"
-                      onPress={searchForGroup}
-                      loading={searchingGroup}
-                      disabled={saving || searchingGroup || !groupSearchQuery.trim()}
-                      style={styles.searchButton}
-                    >
-                      Search
-                    </Button>
-                  </View>
-                  
-                  
-                  {/* Search Results */}
-                  {groupSearchResult && (
-                    <Card style={styles.searchResultCard}>
-                      <Card.Content>
-                        <View style={styles.groupItem}>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.subheading}>Found Group</Text>
-                            <Text>
-                              Group ID: {groupSearchResult.uuid}
-                            </Text>
-                          </View>
-                          <Button 
-                            mode="contained" 
-                            icon="account-plus" 
-                            onPress={handleAddUserToGroup}
-                            disabled={saving}
-                            style={{ marginLeft: 8 }}
+                  {/* Group Dropdown */}
+                  <Card style={styles.card}>
+                    <Card.Title title="Add to Group" />
+                    <Card.Content>
+                      {groupError && (
+                        <HelperText type="error">{groupError}</HelperText>
+                      )}
+                      
+                      <Menu
+                        visible={groupMenuVisible}
+                        onDismiss={() => setGroupMenuVisible(false)}
+                        anchor={
+                          <TouchableOpacity 
+                            style={styles.dropdownButton} 
+                            onPress={() => {
+                              fetchAvailableGroups();
+                              setGroupMenuVisible(true);
+                            }}
                           >
-                            Add
-                          </Button>
-                        </View>
-                      </Card.Content>
-                    </Card>
-                  )}
+                            <Text style={styles.dropdownButtonText}>
+                              {selectedGroup ? selectedGroup.name : 'Select a group'}
+                            </Text>
+                            <MaterialIcons name="arrow-drop-down" size={24} color="#000" />
+                          </TouchableOpacity>
+                        }
+                      >
+                        {availableGroups.map((group) => (
+                          <Menu.Item
+                            key={group.uuid}
+                            onPress={() => {
+                              setSelectedGroup(group);
+                              setGroupMenuVisible(false);
+                            }}
+                            title={group.name}
+                          />
+                        ))}
+                        {availableGroups.length === 0 && (
+                          <Menu.Item title="No groups available" disabled />
+                        )}
+                      </Menu>
+
+                      <Button 
+                        mode="contained"
+                        onPress={() => selectedGroup && handleAddUserToGroup()}
+                        disabled={!selectedGroup}
+                        style={styles.actionButton}
+                      >
+                        Add to Group
+                      </Button>
+                    </Card.Content>
+                  </Card>
                 </>
               )}
             </View>
@@ -998,6 +1026,25 @@ const styles = StyleSheet.create({
   centered: {
     alignItems: 'center',
     marginVertical: 16,
+  },
+  groupDropdownContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  card: {
+    marginBottom: 12,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+  },
+  dropdownButtonText: {
+    marginRight: 8,
+  },
+  actionButton: {
+    marginTop: 8,
   },
 });
 

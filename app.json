@@ -2,6 +2,7 @@
   "expo": {
     "name": "Inventory APP",
     "slug": "inventory-app",
+    "scheme": "inventory-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",

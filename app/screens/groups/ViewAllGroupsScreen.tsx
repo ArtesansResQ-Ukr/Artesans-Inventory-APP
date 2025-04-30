@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { UserManagementStackParamList } from '../../navigation/types/navigation';
 import { getAllGroups, searchGroup } from '../../services/api/groupApi';
+import { colors, textColors } from '../../theme';
 
 type ViewAllGroupsNavigationProp = StackNavigationProp<UserManagementStackParamList, 'ViewAllGroups'>;
 
@@ -88,6 +89,7 @@ const ViewAllGroupsScreen = () => {
           <IconButton
             icon="chevron-right"
             size={24}
+            iconColor={colors.primary}
             onPress={() => navigation.navigate('UpdateGroup', { groupId: item.uuid, groupName: item.name })}
           />
         </View>
@@ -104,24 +106,31 @@ const ViewAllGroupsScreen = () => {
           onChangeText={handleSearch}
           value={searchQuery}
           style={styles.searchBar}
+          iconColor={colors.primary}
+          inputStyle={{ color: textColors.primary }}
         />
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0000ff" />
-          <Text>Loading groups...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading groups...</Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <Button mode="contained" onPress={fetchGroups} style={styles.retryButton}>
+          <Button 
+            mode="contained" 
+            onPress={fetchGroups} 
+            style={styles.retryButton}
+            buttonColor={colors.primary}
+          >
             Retry
           </Button>
         </View>
       ) : filteredGroups.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text>No groups found</Text>
+          <Text style={styles.emptyText}>No groups found</Text>
           <Button 
             mode="contained" 
             onPress={() => {
@@ -129,6 +138,7 @@ const ViewAllGroupsScreen = () => {
               navigation.navigate('CreateGroup');
             }}
             style={styles.createButton}
+            buttonColor={colors.primary}
           >
             Create a New Group
           </Button>
@@ -139,7 +149,7 @@ const ViewAllGroupsScreen = () => {
           renderItem={renderGroupItem}
           keyExtractor={(item) => item.uuid}
           contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <Divider />}
+          ItemSeparatorComponent={() => <Divider style={styles.divider} />}
         />
       )}
 
@@ -155,6 +165,7 @@ const ViewAllGroupsScreen = () => {
             console.error('Navigation error:', err);
           }
         }}
+        color={colors.white}
       />
     </View>
   );
@@ -163,24 +174,32 @@ const ViewAllGroupsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   header: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
+    elevation: 2,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 16,
+    color: colors.primary,
   },
   searchBar: {
     marginBottom: 8,
+    backgroundColor: colors.white,
+    elevation: 1,
   },
   card: {
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 8,
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
   cardContent: {
     flexDirection: 'row',
@@ -190,15 +209,20 @@ const styles = StyleSheet.create({
   groupName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: colors.primary,
   },
   groupId: {
     fontSize: 14,
-    color: '#757575',
+    color: textColors.secondary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: textColors.primary,
   },
   errorContainer: {
     flex: 1,
@@ -207,7 +231,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   errorText: {
-    color: 'red',
+    color: colors.error,
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -220,18 +244,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
+  emptyText: {
+    color: textColors.secondary,
+    marginBottom: 16,
+  },
   createButton: {
     marginTop: 16,
   },
   listContent: {
     paddingVertical: 8,
   },
+  divider: {
+    backgroundColor: colors.gray + '40',
+  },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#2196F3',
+    backgroundColor: colors.primary,
   },
 });
 

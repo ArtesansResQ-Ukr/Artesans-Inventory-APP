@@ -146,7 +146,7 @@ export const selectProduct = async (extractedProduct: Product, selectedProductId
  */
 export const increaseProductQuantity = async (uuid: string, quantity: number) => {
   try {
-    const response = await apiClient.post(`/products/${uuid}/increase`, {quantity});
+    const response = await apiClient.post(`/products/${uuid}/increase?quantity=${quantity}`);
     return response.data.updated_product;
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response) {
@@ -170,7 +170,7 @@ export const increaseProductQuantity = async (uuid: string, quantity: number) =>
  */
 export const decreaseProductQuantity = async (uuid: string, quantity: number) => {
   try {
-    const response = await apiClient.post(`/products/${uuid}/decrease`, {quantity});
+    const response = await apiClient.post(`/products/${uuid}/decrease?quantity=${quantity}`);
     return response.data.updated_product;
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response) {
@@ -343,4 +343,21 @@ export const getSpecificProductHistory = async (productUuid: string) => {
       throw new Error;
     }
   }
-}
+};
+
+export const getProductByUuid = async (productUuid: string) => {
+  try {
+    const response = await apiClient.get(`/products/view?product_uuid=${productUuid}`);
+    return response.data.product;
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response) {
+      console.error('Failed to fetch product:', error);
+      const backend_message = error.response.data.detail || 'An unknown error occurred';
+      Alert.alert('Error', backend_message);
+      throw backend_message;
+    } else {
+      console.error('Failed to fetch product:', error);
+      throw new Error;
+    }
+  }
+};

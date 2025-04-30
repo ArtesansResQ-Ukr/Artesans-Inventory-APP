@@ -1,4 +1,6 @@
+import { Alert } from 'react-native';
 import apiClient from '../../services/api/apiClient';
+import { AxiosError } from 'axios';
 
 interface User {
     uuid: string;
@@ -13,6 +15,9 @@ interface User {
     roles?: string[];
     groups?: string[];
     permissions?: string[];
+    sub?: string;
+    group_uuid?: string;
+    group_permissions?: Record<string, any>;
 }
 
 interface UserUpdate {
@@ -242,3 +247,20 @@ export const getGroupUserIn = async (uuid: string): Promise<ApiResponse<UserGrou
         };
     }
 };
+
+export const changeGroup = async (group_uuid: string): Promise<ApiResponse<{message: string; user: User; group_uuid: string}>> => {
+    try {
+        const response = await apiClient.post(`/users/change-group?group_uuid=${group_uuid}`);
+        return { data: response.data };
+    } catch (error: unknown) {
+        if (error instanceof AxiosError && error.response) {
+          console.error('Failed to change group:', error);
+          const backend_message = error.response.data.detail || 'An unknown error occurred';
+          Alert.alert('Error', backend_message);
+          throw backend_message;
+        } else {
+          console.error('Failed to change group:', error);
+          throw new Error;
+        }
+      }
+}

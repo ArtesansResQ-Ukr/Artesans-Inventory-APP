@@ -15,7 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AccountStackParamList } from '../../navigation/types/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
 
 type SecuritySettingsScreenNavigationProp = NativeStackNavigationProp<AccountStackParamList>;
 
@@ -170,6 +170,28 @@ const SecuritySettingsScreen: React.FC = () => {
                 <Text style={styles.settingTitle}>Change Password</Text>
                 <Text style={styles.settingDescription}>
                   Update your account password
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Group</Text>
+          
+          <TouchableOpacity 
+            style={styles.settingButton}
+            // Placeholder for password change functionality
+            onPress={() => navigation.navigate('GroupSettings')}
+          >
+            <View style={styles.settingTextContainer}>
+              <View style={styles.iconContainer}>
+                <FontAwesome name="group" size={24} color="#3498db" />
+              </View>
+              <View>
+                <Text style={styles.settingTitle}>Change CurrentGroup</Text>
+                <Text style={styles.settingDescription}>
+                  Change your current group
                 </Text>
               </View>
             </View>

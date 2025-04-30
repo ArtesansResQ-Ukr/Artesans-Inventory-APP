@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Alert, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { getToken } from '../../services/auth/tokenService';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
 interface BiometricAuthProps {
   tokenKey?: string;           // SecureStore key for the JWT token (optional)
@@ -22,9 +24,11 @@ const BiometricAuth: React.FC<BiometricAuthProps> = ({
   fallbackLabel = 'Use Passcode',
   buttonText = 'Authenticate with Face ID',
 }) => {
+  const { authenticateWithBiometrics, login } = useAuth(); // Use AuthContext for authentication
   const [isCompatible, setIsCompatible] = useState<boolean>(false);
   const [biometricType, setBiometricType] = useState<string>('');
   const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
+  const navigation = useNavigation();
 
   // Check if device supports biometric authentication
   useEffect(() => {
@@ -47,7 +51,7 @@ const BiometricAuth: React.FC<BiometricAuthProps> = ({
     })();
   }, []);
 
-  // Authenticate with biometrics and retrieve token
+  // Authenticate with biometrics
   const authenticate = useCallback(async () => {
     if (!isCompatible) {
       Alert.alert('Error', 'Your device does not support biometric authentication');
@@ -57,63 +61,88 @@ const BiometricAuth: React.FC<BiometricAuthProps> = ({
     try {
       setIsAuthenticating(true);
       
-      // Check if biometric data is enrolled
+      // First check if biometric is enrolled
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       if (!isEnrolled) {
+        const error = new Error('Biometric authentication not set up on this device');
+        console.error(error.message);
         Alert.alert(
           'Biometric Authentication Not Set Up',
           'Please set up biometric authentication in your device settings.'
         );
+        if (onFailure) onFailure(error);
         setIsAuthenticating(false);
         return;
       }
-
-      // Perform authentication
-      const result = await LocalAuthentication.authenticateAsync({
+      
+      // Directly attempt biometric auth to get detailed error information from the device
+      const directResult = await LocalAuthentication.authenticateAsync({
         promptMessage,
         cancelLabel,
         fallbackLabel,
         disableDeviceFallback: false,
       });
-
-      if (result.success) {
-        // Authentication successful, get the token from tokenService
-        try {
+      
+      console.log('Direct biometric result:', directResult);
+      
+      if (directResult.success) {
+        // If direct auth successful, proceed with the context auth
+        console.log('Attempting biometric authentication through AuthContext...');
+        const success = await authenticateWithBiometrics();
+        
+        if (success) {
+          console.log('Biometric authentication successful');
           const token = await getToken();
-          if (token) {
-            console.log('JWT Token retrieved successfully');
-            onSuccess?.(token);
-          } else {
-            const error = new Error('Token not found. Please log in first.');
-            console.error(error);
-            Alert.alert('Authentication Error', error.message);
-            onFailure?.(error);
+          // Call onSuccess callback if provided
+          if (token && onSuccess) {
+            console.log('Calling onSuccess with token');
+            onSuccess(token);
+          } else if (!token) {
+            console.error('No token found after successful authentication');
+            if (onFailure) onFailure(new Error('Authentication successful but no token found'));
           }
-        } catch (error) {
-          console.error('Error retrieving token:', error);
-          const tokenError = error instanceof Error 
-            ? error 
-            : new Error('Failed to retrieve secure token');
-          Alert.alert('Authentication Error', tokenError.message);
-          onFailure?.(tokenError);
+        } else {
+          console.log('AuthContext authentication returned false even though device auth succeeded');
+          
+          // Handle the token validation failure case
+          Alert.alert(
+            'Session Expired',
+            'Your session has expired. Please log in again.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  // @ts-ignore: Navigation typing issue
+                  navigation.navigate('Login');
+                }
+              }
+            ]
+          );
+          
+          if (onFailure) {
+            onFailure(new Error('Authentication successful on device but token validation failed'));
+          }
         }
       } else {
-        // Handle cancellation or failure
-        const errorMessage = result.error === 'user_cancel' 
-          ? 'Authentication cancelled'
+        // Direct biometric auth failed
+        const errorMessage = directResult.error 
+          ? `Authentication failed: ${directResult.error}` 
           : 'Authentication failed';
-        console.log('Authentication result:', result);
-        Alert.alert('Authentication', errorMessage);
-        onFailure?.(new Error(errorMessage));
+        console.error(errorMessage);
+        
+        if (onFailure) {
+          onFailure(new Error(errorMessage));
+        }
       }
     } catch (error) {
       console.error('Authentication error:', error);
-      Alert.alert('Error', 'An error occurred during authentication');
-      onFailure?.(error instanceof Error ? error : new Error(String(error)));
+      if (onFailure) {
+        onFailure(error instanceof Error ? error : new Error(String(error)));
+      }
     } finally {
       setIsAuthenticating(false);
     }
-  }, [isCompatible, promptMessage, cancelLabel, fallbackLabel, onSuccess, onFailure]);
+  }, [isCompatible, promptMessage, cancelLabel, fallbackLabel, onSuccess, onFailure, authenticateWithBiometrics, navigation]);
 
   return (
     <View style={styles.container}>

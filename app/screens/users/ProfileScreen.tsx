@@ -15,6 +15,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { UserManagementStackParamList } from '../../navigation/types/navigation';
 import { getUsersByUuid, getGroupUserIn, getUserPermissions } from '../../services/api/userApi';
+import { getProductByUuid, getProductUserHistory } from '../../services/api/productApi';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface User {
@@ -46,6 +47,15 @@ interface UserGroups {
   }[];
 }
 
+interface UserHistory {
+  uuid: string;
+  action: string;
+  product_uuid?: string;
+  user_uuid?: string;
+  product_name?: string;
+  timestamp: string;
+}
+
 type ProfileScreenRouteProp = RouteProp<UserManagementStackParamList, 'ProfileScreen'>;
 
 const ProfileScreen = () => {
@@ -59,6 +69,9 @@ const ProfileScreen = () => {
   const [userGroup, setUserGroup] = useState<Group | null>(null);
   const [userGroups, setUserGroups] = useState<UserGroups | null>(null);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [userHistory, setUserHistory] = useState<UserHistory[]>([]);
+  const [userHistoryLoading, setUserHistoryLoading] = useState(false);
+  const [userHistoryError, setUserHistoryError] = useState<string | null>(null);
   const [permissionsLoading, setPermissionsLoading] = useState(false);
   const [permissionsError, setPermissionsError] = useState<string | null>(null);
   const [groupLoading, setGroupLoading] = useState(false);
@@ -73,6 +86,13 @@ const ProfileScreen = () => {
   useEffect(() => {
     fetchData();
   }, [userId]);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserPermissions(userId);
+      fetchUserHistory(userId);
+    }
+  }, [user]);
 
   const fetchData = async () => {
     try {
@@ -149,6 +169,56 @@ const ProfileScreen = () => {
       setGroupError('An unexpected error occurred fetching group information.');
     } finally {
       setGroupLoading(false);
+    }
+  };
+  const fetchProductName = async (productUuid: string) => {
+    try {
+      const result = await getProductByUuid(productUuid);
+      return result.data.name;
+    } catch (error) {
+      console.error('Error fetching product name:', error);
+      return 'Unknown';
+    }
+  };
+
+  const fetchUserHistory = async (userId: string) => {
+    try {
+      setUserHistoryLoading(true);
+      setUserHistoryError(null);
+      
+      const result = await getProductUserHistory(userId);
+      if (result.error) {
+        if (result.error.status === 404) {
+          setUserHistory([]);
+        } else {
+          setUserHistoryError(result.error.message);
+        }
+        return;
+      }
+      
+      // Store the history data and sort it chronologically (newest first)
+      if (result.data && result.data.product_user_history) {
+        const sortedHistory = [...result.data.product_user_history].sort((a, b) => {
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        });
+        const historyWithProductName = await Promise.all(sortedHistory.map(async (item) => ({
+          ...item,
+          product_name: await fetchProductName(item.product_uuid)
+        })));
+        
+        setUserHistory(historyWithProductName);
+        
+        if (sortedHistory.length > 0) {
+          setProductHistoryExpanded(true);
+        }
+      } else {
+        setUserHistory([]);
+      }
+    } catch (error) {
+      console.error('Error fetching user history:', error);
+      setUserHistoryError('An unexpected error occurred fetching user history.');
+    } finally {
+      setUserHistoryLoading(false);
     }
   };
 
@@ -344,15 +414,50 @@ const ProfileScreen = () => {
           title="Product History"
           description="Items checked out by this user"
           expanded={productHistoryExpanded}
-          onPress={() => setProductHistoryExpanded(!productHistoryExpanded)}
+          onPress={() => {
+            setProductHistoryExpanded(!productHistoryExpanded);
+            if (!productHistoryExpanded && userHistory.length === 0) {
+              fetchUserHistory(userId);
+            }
+          }}
           left={props => <List.Icon {...props} icon="history" />}
           style={styles.accordion}
         >
-          <View style={styles.placeholderContainer}>
-            <Text style={styles.placeholderText}>
-              Product history feature coming soon
-            </Text>
-          </View>
+          {userHistoryLoading ? (
+            <View style={styles.placeholderContainer}>
+              <ActivityIndicator size="small" />
+              <Text style={styles.placeholderText}>Loading history...</Text>
+            </View>
+          ) : userHistoryError ? (
+            <View style={styles.placeholderContainer}>
+              <Text style={[styles.placeholderText, { color: theme.colors.error }]}>
+                {userHistoryError}
+              </Text>
+            </View>
+          ) : userHistory.length === 0 ? (
+            <View style={styles.placeholderContainer}>
+              <Text style={styles.placeholderText}>
+                No history available for this user
+              </Text>
+            </View>
+          ) : (
+            <View>
+              {userHistory.map((item, index) => (
+                <List.Item
+                  key={item.uuid || index}
+                  title={item.action}
+                  description={`${item.product_name} • ${new Date(item.timestamp).toLocaleString()}`}
+                  left={props => <List.Icon {...props} icon={
+                    item.action.includes('created') ? 'plus-circle' : 
+                    item.action.includes('added') ? 'plus-circle' : 
+                    item.action.includes('removed') ? 'minus-circle' :
+                    item.action.includes('deleted') ? 'delete' : 'history'
+                  } />}
+                  style={index < userHistory.length - 1 ? { borderBottomWidth: 0.5, borderBottomColor: '#e0e0e0' } : {}}
+                />
+              ))}
+            </View>
+          )}
         </List.Accordion>
         
         {(

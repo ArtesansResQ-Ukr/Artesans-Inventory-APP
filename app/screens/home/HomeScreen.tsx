@@ -3,6 +3,8 @@ import React from 'react';
 import { View, StyleSheet, Platform, Dimensions } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { colors, textColors } from '../../theme';
+import { Ionicons } from '@expo/vector-icons';
 
 type Props = {
   navigation: NativeStackNavigationProp<any>;
@@ -36,6 +38,9 @@ const HomeScreen = ({ navigation }: Props) => {
           ]} 
           onPress={() => navigation.navigate('ProductTypeSelection')}
         >
+          <View style={styles.cardHeader}>
+            <Ionicons name="cube-outline" size={24} color={colors.white} />
+          </View>
           <Card.Content style={styles.cardContent}>
             <Text style={styles.cardTitle}>Inventory Management</Text>
             <Text style={styles.cardDescription}>
@@ -51,6 +56,9 @@ const HomeScreen = ({ navigation }: Props) => {
           ]} 
           onPress={() => navigation.navigate('UserManagement')}
         >
+          <View style={styles.cardHeader}>
+            <Ionicons name="people-outline" size={24} color={colors.white} />
+          </View>
           <Card.Content style={styles.cardContent}>
             <Text style={styles.cardTitle}>User Management</Text>
             <Text style={styles.cardDescription}>
@@ -70,18 +78,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: 'center',
     padding: 16,
+    backgroundColor: colors.background,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'center',
+    color: colors.primary,
   },
   subtitle: {
     fontSize: 18,
     marginBottom: 32,
     textAlign: 'center',
-    opacity: 0.7,
+    color: textColors.secondary,
   },
   webCardContainer: {
     flexDirection: 'row',
@@ -96,10 +106,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     elevation: 4,
     width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: colors.white,
+    borderLeftWidth: 0,
   },
   webCard: {
     width: '45%', 
     minWidth: 300,
+  },
+  cardHeader: {
+    backgroundColor: colors.primary,
+    padding: 16,
+    alignItems: 'center',
   },
   cardContent: {
     padding: 16,
@@ -110,10 +129,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 12,
+    color: colors.primary,
   },
   cardDescription: {
     fontSize: 16,
-    opacity: 0.8,
+    color: textColors.secondary,
   },
 });
 

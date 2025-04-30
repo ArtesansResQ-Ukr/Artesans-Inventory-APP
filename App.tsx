@@ -6,6 +6,7 @@ import { store } from './app/store';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { UserProvider } from './app/contexts/UserContext';
 import { AuthProvider } from './app/contexts/AuthContext';
+import theme from './app/theme';
 
 import AppNavigatorWrapper from './app/navigation/AppNavigatorWrapper';
 
@@ -16,7 +17,7 @@ import AppNavigatorWrapper from './app/navigation/AppNavigatorWrapper';
 export default function App() {
   return (
     <ReduxProvider store={store}>
-      <PaperProvider>
+      <PaperProvider theme={theme}>
         <AuthProvider>
           <UserProvider>
             <SafeAreaProvider>

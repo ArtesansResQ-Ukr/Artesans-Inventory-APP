@@ -1,17 +1,19 @@
 // app/screens/products/ProductListScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-import { Searchbar, Card, Text, Chip, ActivityIndicator, Divider } from 'react-native-paper';
+import { Searchbar, Card, Text, Chip, ActivityIndicator, Divider, useTheme } from 'react-native-paper';
 import { getProducts } from '../../services/api/productApi';
 import { getAllGroups } from '../../services/api/groupApi';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { InventoryStackParamList } from '../../navigation/types/navigation';
+import { colors, textColors } from '../../theme';
 
 type ProductListScreenNavigationProp = StackNavigationProp<InventoryStackParamList>;
 
 const ProductListScreen = () => {
   const navigation = useNavigation<ProductListScreenNavigationProp>();
+  const paperTheme = useTheme();
   const [products, setProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -124,26 +126,26 @@ const ProductListScreen = () => {
   const renderProductItem = ({ item }: { item: any }) => (
     <Card style={styles.card} onPress={() => navigation.navigate('ProductDetail', { productUuid: item.uuid , userUuid: item.user_uuid })}>
       <Card.Content>
-        <Text variant="titleLarge">{item.name}</Text>
-        <Text variant="bodyMedium">Category: {item.category}</Text>
+        <Text variant="titleLarge" style={styles.productTitle}>{item.name}</Text>
         <View style={styles.productDetails}>
-          <Text variant="bodyMedium">Quantity: {item.quantity}</Text>
+          <Text variant="bodyMedium">Category: {item.category}</Text>
+          <Text variant="bodyMedium">Total Quantity: {item.quantity}</Text>
           <Text variant="bodyMedium">Expires: {item.expiration_date}</Text>
-          <Text variant="bodyMedium">Group: {groupsMap[item.group_uuid] || 'Unknown'}</Text>
         </View>
-        {item.comments && <Text variant="bodySmall">Notes: {item.comments}</Text>}
+        {item.comments && <Text variant="bodySmall" style={styles.notes}>Notes: {item.comments}</Text>}
       </Card.Content>
     </Card>
   );
 
   return (
     <View style={styles.container}>
-      <Text variant="titleLarge" style={styles.title}>Inventory List</Text>
       <Searchbar
         placeholder="Search products"
         onChangeText={onChangeSearch}
         value={searchQuery}
         style={styles.searchBar}
+        iconColor={colors.primary}
+        inputStyle={{color: textColors.primary}}
       />
       
       {/* Group filter chips */}
@@ -154,7 +156,11 @@ const ProductListScreen = () => {
             data={Object.keys(groups)}
             renderItem={({ item }) => (
               <Chip 
-                style={styles.chip}
+                style={[
+                  styles.chip,
+                  selectedGroup === item ? styles.selectedChip : {}
+                ]}
+                selectedColor={colors.white}
                 selected={selectedGroup === item}
                 onPress={() => handleGroupFilter(item)}
                 mode="outlined"
@@ -172,7 +178,7 @@ const ProductListScreen = () => {
       <Divider style={styles.divider} />
       
       {loading ? (
-        <ActivityIndicator size="large" style={styles.loader} />
+        <ActivityIndicator size="large" style={styles.loader} color={colors.primary} />
       ) : error ? (
         <View style={styles.errorContainer}>
           <Text variant="bodyLarge" style={styles.errorText}>{error}</Text>
@@ -182,7 +188,7 @@ const ProductListScreen = () => {
         </View>
       ) : filteredProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text variant="bodyLarge">No products found</Text>
+          <Text variant="bodyLarge" style={{color: textColors.secondary}}>No products found</Text>
         </View>
       ) : (
         <FlatList
@@ -198,47 +204,64 @@ const ProductListScreen = () => {
 
 const styles = StyleSheet.create({
   title: {
-    marginTop: 10,
     marginBottom: 20,
     fontWeight: 'bold',
     fontSize: 24,
     textAlign: 'center',
-    color: 'Gray',
+    color: textColors.primary,
   },
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f5f5f5',
-    marginTop: 50,
+    backgroundColor: colors.background
   },
   searchBar: {
     marginBottom: 8,
     elevation: 2,
+    backgroundColor: colors.white,
   },
   chipContainer: {
     marginVertical: 8,
   },
   filterLabel: {
     marginBottom: 4,
+    color: textColors.secondary,
   },
   chip: {
     marginRight: 8,
     marginVertical: 4,
+    borderColor: colors.primary,
+  },
+  selectedChip: {
+    backgroundColor: colors.primary,
   },
   divider: {
     marginVertical: 8,
+    backgroundColor: colors.gray,
+    opacity: 0.2,
   },
   card: {
     marginBottom: 12,
     elevation: 2,
+    backgroundColor: colors.white,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
   list: {
     paddingBottom: 16,
   },
   productDetails: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
     marginVertical: 8,
+  },
+  productTitle: {
+    color: colors.primary,
+    fontWeight: 'bold',
+  },
+  notes: {
+    fontStyle: 'italic',
+    color: textColors.secondary,
   },
   loader: {
     flex: 1,
@@ -250,13 +273,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    color: 'red',
+    color: colors.error,
     textAlign: 'center',
     marginBottom: 16,
   },
   retryButton: {
-    color: 'blue',
+    color: colors.secondary,
     fontSize: 16,
+    fontWeight: 'bold',
   },
   emptyContainer: {
     flex: 1,

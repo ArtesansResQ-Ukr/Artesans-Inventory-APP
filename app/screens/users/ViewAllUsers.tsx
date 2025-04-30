@@ -23,6 +23,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { UserManagementStackParamList } from '../../navigation/types/navigation';
 import { getAllUsers, getActiveUsers, getGroupUserIn } from '../../services/api/userApi';
 import { getAllGroups } from '../../services/api/groupApi';
+import { colors } from '../../theme';
 
 // Define user interface
 interface User {
@@ -307,6 +308,7 @@ const ViewAllUsers = () => {
       <FAB
         style={styles.fab}
         icon="plus"
+        color={colors.black}
         onPress={navigateToCreateUser}
         label="Add User"
       />

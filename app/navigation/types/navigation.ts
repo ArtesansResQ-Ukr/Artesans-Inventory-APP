@@ -54,6 +54,7 @@ export type AccountStackParamList = {
   MyAccountScreen: undefined;
   SecuritySettings: undefined;
   ChangePassword: undefined;
+  GroupSettings: undefined;
 };
 
 // Define the TabNavigator types using NavigatorScreenParams to support nested navigation

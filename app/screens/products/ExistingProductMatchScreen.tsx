@@ -131,7 +131,7 @@ const ExistingProductMatchScreen = () => {
       
       // Reset and navigate back
       dispatch(resetOcr());
-      navigation.navigate('ProductTypeSelection');
+      navigation.navigate('Camera');
       
     } catch (error) {
       console.error('Error updating product quantity:', error);

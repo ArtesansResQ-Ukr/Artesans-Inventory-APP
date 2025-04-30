@@ -32,6 +32,7 @@ import ViewAllGroupsScreen from '../screens/groups/ViewAllGroupsScreen';
 import UpdateGroupScreen from '../screens/groups/UpdateGroupScreen';
 import ChangePasswordScreen from '../screens/settings/ChangePasswordScreen';
 import CreateGroupScreen from '../screens/groups/CreateGroupScreen';
+import GroupSettingsScreen from '../screens/settings/GroupSettingsScreen';
 
 // Create stack navigators for each tab
 const HomeStack = createStackNavigator<HomeStackParamList>();
@@ -163,6 +164,11 @@ const AccountStackScreen = () => (
       name="ChangePassword" 
       component={ChangePasswordScreen}
       options={{ title: 'Change Password' }}
+    />
+    <AccountStack.Screen 
+      name="GroupSettings" 
+      component={GroupSettingsScreen}
+      options={{ title: 'Group Settings' }}
     />
   </AccountStack.Navigator>
 );

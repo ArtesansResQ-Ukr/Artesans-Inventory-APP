@@ -34,8 +34,9 @@ import {
   getProductQuantityInAllGroups,
   getProductQuantityInOneGroup
 } from '../../services/api/productApi';
-import { getAllGroups, getMyGroups } from '../../services/api/groupApi';
+import { getAllGroups, getMyGroups, getGroupByUuid } from '../../services/api/groupApi';
 import { format, parseISO } from 'date-fns';
+import { colors, textColors } from '../../theme';
 
 // Define interfaces
 interface Product {
@@ -107,9 +108,16 @@ const ProductDetailScreen = () => {
           const groupQuantities = await getProductQuantityInAllGroups(productUuid);
           if (groupQuantities && groupQuantities.length > 0) {
             // Update product with group quantities
+            const groupQuantitiesWithNames = await Promise.all(groupQuantities.map(async (group: any) => {
+              const groupData = await getGroupByUuid(group.group_uuid);
+              return {
+                ...group,
+                name: groupData.data?.name || 'Unknown Group'
+              };
+            }));
             setProduct(prev => ({
               ...prev!,
-              groups: groupQuantities
+              groups: groupQuantitiesWithNames
             }));
           }
           
@@ -161,7 +169,10 @@ const ProductDetailScreen = () => {
       try {
         setHistoryLoading(true);
         const historyData = await getSpecificProductHistory(productUuid);
-        setHistory(historyData);
+        const sortedHistory = [...historyData].sort((a, b) => {
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        });
+        setHistory(sortedHistory);
       } catch (error) {
         console.error('Error fetching product history:', error);
       } finally {
@@ -232,6 +243,8 @@ const ProductDetailScreen = () => {
     
     try {
       setLoading(true);
+      console.log('product.uuid', product.uuid);
+      console.log('quantityNum', quantityNum);
       await increaseProductQuantity(product.uuid, quantityNum);
       Alert.alert('Success', `Added ${quantityNum} units to inventory`);
       handleRefreshData();
@@ -260,6 +273,8 @@ const ProductDetailScreen = () => {
     
     try {
       setLoading(true);
+      console.log('product.uuid', product.uuid);
+      console.log('quantityNum', quantityNum);
       await decreaseProductQuantity(product.uuid, quantityNum);
       Alert.alert('Success', `Removed ${quantityNum} units from inventory`);
       handleRefreshData();
@@ -314,7 +329,7 @@ const ProductDetailScreen = () => {
             onPress={() => navigation.goBack()} 
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Product Details</Text>
           <View style={{ width: 24 }} />
@@ -328,7 +343,8 @@ const ProductDetailScreen = () => {
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Category</Text>
-                <Chip icon="tag" style={styles.categoryChip}>{product?.category}</Chip>
+                <Chip icon="tag" key={product?.uuid}
+                style={styles.categoryChip}>{product?.category}</Chip>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Expiration Date</Text>
@@ -343,7 +359,7 @@ const ProductDetailScreen = () => {
             <View style={styles.quantitySection}>
               <Text style={styles.infoLabel}>Total Quantity</Text>
               <View style={styles.quantityDisplay}>
-                <Ionicons name="cube" size={24} color={theme.colors.primary} />
+                <Ionicons name="cube" size={24} color={colors.primary} />
                 <Text style={styles.quantityText}>{product?.quantity || 0}</Text>
               </View>
             </View>
@@ -361,7 +377,7 @@ const ProductDetailScreen = () => {
 
         {/* Group Quantities Card */}
         <Card style={styles.card}>
-          <Card.Content>
+          <Card.Content key={product?.uuid}>
             <Title style={styles.cardTitle}>Quantity by Group</Title>
             {!product?.groups || product.groups.length === 0 ? (
               <Text style={styles.noHistoryText}>No group quantity information available</Text>
@@ -393,6 +409,8 @@ const ProductDetailScreen = () => {
                     style={styles.menuButton}
                     icon="chevron-down"
                     contentStyle={styles.menuButtonContent}
+                    disabled={true}
+                    textColor={colors.primary}
                   >
                     {selectedGroupLabel}
                   </Button>
@@ -422,6 +440,8 @@ const ProductDetailScreen = () => {
                 keyboardType="numeric"
                 style={styles.quantityInput}
                 mode="outlined"
+                outlineColor={colors.primary}
+                activeOutlineColor={colors.primary}
               />
             </View>
             
@@ -429,18 +449,20 @@ const ProductDetailScreen = () => {
               <Button 
                 mode="contained" 
                 onPress={handleIncreaseQuantity}
-                style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+                style={[styles.actionButton]}
                 icon="plus"
                 disabled={loading}
+                buttonColor={colors.primary}
               >
                 Add
               </Button>
               <Button 
                 mode="contained" 
                 onPress={handleDecreaseQuantity}
-                style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+                style={[styles.actionButton]}
                 icon="minus"
                 disabled={loading || (product?.quantity || 0) <= 0}
+                buttonColor={colors.primary}
               >
                 Remove
               </Button>
@@ -459,12 +481,12 @@ const ProductDetailScreen = () => {
               <Ionicons 
                 name={isHistoryExpanded ? 'chevron-up' : 'chevron-down'} 
                 size={24} 
-                color={theme.colors.primary}
+                color={colors.primary}
               />
             </TouchableOpacity>
             
             {historyLoading ? (
-              <ActivityIndicator size="small" style={styles.historyLoading} />
+              <ActivityIndicator size="small" style={styles.historyLoading} color={colors.primary} />
             ) : history.length === 0 ? (
               <Text style={styles.noHistoryText}>No history available</Text>
             ) : isHistoryExpanded ? (
@@ -509,7 +531,7 @@ const ProductDetailScreen = () => {
           onPress={() => setDeleteDialogVisible(true)}
           style={styles.deleteButton}
           icon="delete"
-          buttonColor={theme.colors.error}
+          buttonColor={colors.error}
         >
           Delete Product
         </Button>
@@ -526,7 +548,7 @@ const ProductDetailScreen = () => {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setDeleteDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleDeleteProduct} textColor={theme.colors.error}>Delete</Button>
+            <Button onPress={handleDeleteProduct} textColor={colors.error}>Delete</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -537,7 +559,7 @@ const ProductDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 16,
@@ -551,6 +573,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+    color: textColors.primary,
   },
   header: {
     flexDirection: 'row',
@@ -564,19 +587,24 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: colors.primary,
   },
   card: {
     marginBottom: 16,
     elevation: 2,
+    backgroundColor: colors.white,
+    borderRadius: 8,
   },
   productName: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 16,
+    color: colors.primary,
   },
   cardTitle: {
     fontSize: 18,
     marginBottom: 16,
+    color: colors.primary,
   },
   infoRow: {
     flexDirection: 'row',
@@ -589,17 +617,20 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
+    color: textColors.secondary,
     marginBottom: 8,
   },
   categoryChip: {
     alignSelf: 'flex-start',
+    backgroundColor: colors.primary + '20',
   },
   expirationChip: {
     alignSelf: 'flex-start',
+    backgroundColor: colors.primary + '20',
   },
   divider: {
     marginVertical: 16,
+    backgroundColor: colors.gray + '40',
   },
   quantitySection: {
     alignItems: 'center',
@@ -614,55 +645,61 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginLeft: 8,
+    color: textColors.primary,
   },
   commentsText: {
     fontSize: 16,
     fontStyle: 'italic',
+    color: textColors.secondary,
   },
   groupItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.background,
   },
   groupName: {
     fontSize: 16,
+    color: textColors.primary,
   },
   groupQuantity: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: colors.primary,
   },
   dropdownLabel: {
     fontSize: 14,
-    color: '#666',
+    color: textColors.secondary,
     marginBottom: 8,
   },
   menuContainer: {
     marginBottom: 16,
   },
   menuButton: {
-    backgroundColor: 'white',
+    backgroundColor: colors.white,
+    borderColor: colors.primary,
   },
   menuButtonContent: {
     padding: 8,
   },
   selectedMenuItem: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.primary + '10',
   },
   selectedMenuItemText: {
     fontWeight: 'bold',
+    color: colors.primary,
   },
   quantityInputContainer: {
     marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
-    color: '#666',
+    color: textColors.secondary,
     marginBottom: 8,
   },
   quantityInput: {
-    backgroundColor: 'white',
+    backgroundColor: colors.white,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -678,7 +715,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 16,
     fontStyle: 'italic',
-    color: '#666',
+    color: textColors.secondary,
   },
   historyHeaderContainer: {
     flexDirection: 'row',
@@ -698,25 +735,28 @@ const styles = StyleSheet.create({
   historyAction: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: textColors.primary,
   },
   historyInfo: {
     fontSize: 14,
-    color: '#666',
+    color: textColors.secondary,
   },
   historyDivider: {
     marginVertical: 8,
+    backgroundColor: colors.background,
   },
   expandPrompt: {
     textAlign: 'center',
     marginVertical: 16,
     fontStyle: 'italic',
-    color: '#666',
+    color: textColors.secondary,
   },
   deleteButton: {
     marginTop: 8,
   },
   historyGroupChip: {
     marginVertical: 4,
+    backgroundColor: colors.primary + '20',
   },
 });
 

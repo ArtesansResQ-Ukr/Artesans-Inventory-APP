@@ -8,6 +8,7 @@ import { setLoading, resetOcr } from '../../store/slices/ocrSlice';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { InventoryStackParamList } from '../../navigation/types/navigation';
+import { colors, textColors } from '../../theme';
 
 type NewProductReviewScreenNavigationProp = StackNavigationProp<InventoryStackParamList>;
 
@@ -82,7 +83,7 @@ const NewProductReviewScreen = () => {
   if (convertingOcr || loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>
           {convertingOcr ? 'Processing image...' : 'Saving product...'}
         </Text>
@@ -91,7 +92,7 @@ const NewProductReviewScreen = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.scrollView} contentContainerStyle={styles.container}>
       <Text style={styles.title}>Review Product Information</Text>
       
       {imageUri && (
@@ -107,6 +108,9 @@ const NewProductReviewScreen = () => {
         value={product.name}
         onChangeText={(text) => setProduct({ ...product, name: text })}
         style={styles.input}
+        mode="outlined"
+        outlineColor={colors.primary}
+        activeOutlineColor={colors.primary}
       />
       
       <TextInput
@@ -114,6 +118,9 @@ const NewProductReviewScreen = () => {
         value={product.category}
         onChangeText={(text) => setProduct({ ...product, category: text })}
         style={styles.input}
+        mode="outlined"
+        outlineColor={colors.primary}
+        activeOutlineColor={colors.primary}
       />
       
       <TextInput
@@ -121,6 +128,9 @@ const NewProductReviewScreen = () => {
         value={product.expiration_date}
         onChangeText={(text) => setProduct({ ...product, expiration_date: text })}
         style={styles.input}
+        mode="outlined"
+        outlineColor={colors.primary}
+        activeOutlineColor={colors.primary}
       />
       
       <TextInput
@@ -129,6 +139,9 @@ const NewProductReviewScreen = () => {
         onChangeText={(text) => setProduct({ ...product, quantity: parseInt(text) || 0 })}
         keyboardType="numeric"
         style={styles.input}
+        mode="outlined"
+        outlineColor={colors.primary}
+        activeOutlineColor={colors.primary}
       />
       
       <TextInput
@@ -137,6 +150,9 @@ const NewProductReviewScreen = () => {
         onChangeText={(text) => setProduct({ ...product, comments: text })}
         style={styles.input}
         multiline
+        mode="outlined"
+        outlineColor={colors.primary}
+        activeOutlineColor={colors.primary}
       />
       
       <View style={styles.buttonContainer}>
@@ -145,6 +161,7 @@ const NewProductReviewScreen = () => {
           onPress={handleSaveProduct} 
           style={styles.button}
           disabled={!product.name || !product.category}
+          buttonColor={colors.primary}
         >
           Add Product
         </Button>
@@ -153,6 +170,8 @@ const NewProductReviewScreen = () => {
           mode="outlined" 
           onPress={handleRetake} 
           style={styles.button}
+          textColor={colors.primary}
+          buttonColor={colors.white}
         >
           Retake Photo
         </Button>
@@ -162,6 +181,10 @@ const NewProductReviewScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     padding: 16,
   },
@@ -169,19 +192,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+    color: textColors.primary,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 16,
     textAlign: 'center',
+    color: colors.primary,
   },
   imageCard: {
     marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    elevation: 2,
   },
   image: {
     width: '100%',
@@ -190,12 +219,15 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 16,
+    backgroundColor: colors.white,
   },
   buttonContainer: {
     marginTop: 16,
   },
   button: {
     marginBottom: 12,
+    borderRadius: 8,
+    borderColor: colors.primary,
   },
 });
 

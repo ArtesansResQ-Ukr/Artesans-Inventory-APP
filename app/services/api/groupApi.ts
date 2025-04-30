@@ -3,6 +3,9 @@ import apiClient from "./apiClient";
 interface Group {
     uuid: string;
     name: string;
+    permissions?: string[];
+    roles?: string[];
+    users?: string[];
 }
 
 interface ApiError {
@@ -41,8 +44,8 @@ export const getMyGroups = async (): Promise<ApiResponse<Group[]>> => {
 
 export const getAllGroups = async (): Promise<ApiResponse<Group[]>> => {
   try {
-    const response = await apiClient.get('/groups/view-all');
-    return { data: response.data.groups };
+    const response = await apiClient.get('/groups/view');
+    return { data: response.data.group };
   } catch (error: any) {
     console.error('Failed to fetch groups:', error);
     return { 
@@ -174,6 +177,20 @@ export const searchGroup = async (name: string): Promise<ApiResponse<{uuid: stri
     }
 };
 
+export const getGroupByUuid = async (group_uuid: string): Promise<ApiResponse<Group>> => {
+    try {
+        const response = await apiClient.get(`/groups/view?group_uuid=${group_uuid}`);
+        return { data: response.data.group };
+    } catch (error: any) {
+        console.error('Failed to get group by uuid:', error);
+        return { 
+            error: {
+                status: error?.response?.status || 500,
+                message: extractErrorMessage(error)
+            }
+        };
+    }
+};
 export const getAllUsersInGroup = async (group_uuid: string): Promise<ApiResponse<{users: any[]}>> => {
     try {
         const response = await apiClient.get(`/groups/${group_uuid}/get-all_users`);

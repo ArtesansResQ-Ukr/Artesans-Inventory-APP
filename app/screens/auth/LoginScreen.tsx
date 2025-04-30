@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthStackParamList } from '../../navigation/types/navigation';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, textColors, colorVariations } from '../../theme';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
@@ -140,7 +141,7 @@ const LoginScreen: React.FC = () => {
 
           {tokenExpiredMessage && (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={20} color="#e74c3c" style={styles.errorIcon} />
+              <Ionicons name="alert-circle" size={20} color={colors.error} style={styles.errorIcon} />
               <Text style={styles.errorText}>{tokenExpiredMessage}</Text>
             </View>
           )}
@@ -152,6 +153,7 @@ const LoginScreen: React.FC = () => {
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your username"
+                  placeholderTextColor={textColors.secondary}
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
@@ -164,6 +166,7 @@ const LoginScreen: React.FC = () => {
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your password"
+                  placeholderTextColor={textColors.secondary}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
@@ -176,7 +179,7 @@ const LoginScreen: React.FC = () => {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={colors.white} />
                 ) : (
                   <Text style={styles.loginButtonText}>Login</Text>
                 )}
@@ -193,13 +196,13 @@ const LoginScreen: React.FC = () => {
                 onPress={navigateToBiometricAuth}
                 style={styles.biometricButton}
               >
-                <Ionicons name="finger-print" size={18} color="#fff" style={styles.biometricIcon}></Ionicons>
+                <Ionicons name="finger-print" size={18} color={colors.white} style={styles.biometricIcon}></Ionicons>
                 <Text style={styles.biometricButtonText}>Login with Biometrics</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => setShowForgotPassword(true)}
-                style={styles.forgotPasswordButton}
+                style={styles.forgotPasswordLink}
               >
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </TouchableOpacity>
@@ -225,7 +228,7 @@ const LoginScreen: React.FC = () => {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={colors.white} />
                 ) : (
                   <Text style={styles.loginButtonText}>Reset Password</Text>
                 )}
@@ -233,9 +236,9 @@ const LoginScreen: React.FC = () => {
 
               <TouchableOpacity
                 onPress={() => setShowForgotPassword(false)}
-                style={styles.forgotPasswordButton}
+                style={styles.backToLoginLink}
               >
-                <Text style={styles.forgotPasswordText}>Back to Login</Text>
+                <Text style={styles.backToLoginText}>Back to Login</Text>
               </TouchableOpacity>
             </>
           )}
@@ -248,118 +251,132 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.primary,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
+    backgroundColor: colors.primary,
   },
   formContainer: {
-    backgroundColor: '#fff',
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: colors.white,
     borderRadius: 10,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 5,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.primary,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: textColors.secondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffebeb',
-    borderRadius: 8,
+    backgroundColor: '#fdecea',
     padding: 12,
+    borderRadius: 8,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#ffd0d0',
   },
   errorIcon: {
     marginRight: 8,
   },
   errorText: {
-    color: '#e74c3c',
-    fontSize: 14,
     flex: 1,
+    color: colors.error,
+    fontSize: 14,
   },
   inputContainer: {
     marginBottom: 16,
   },
   label: {
     fontSize: 14,
-    color: '#333',
+    fontWeight: '600',
+    color: textColors.primary,
     marginBottom: 8,
-    fontWeight: '500',
   },
   input: {
-    backgroundColor: '#f9f9f9',
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: colors.background,
+    height: 50,
     borderRadius: 8,
-    padding: 12,
+    borderWidth: 1,
+    borderColor: colorVariations.backgroundDarker,
+    paddingHorizontal: 16,
     fontSize: 16,
+    color: textColors.primary,
   },
   loginButton: {
-    backgroundColor: '#3498db',
+    backgroundColor: colors.primary,
+    height: 50,
     borderRadius: 8,
-    padding: 14,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 16,
   },
   loginButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   otpLoginButton: {
-    backgroundColor: '#2ecc71',
+    backgroundColor: colors.secondary,
+    height: 50,
     borderRadius: 8,
-    padding: 14,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 16,
   },
   otpLoginButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   biometricButton: {
-    backgroundColor: '#9b59b6',
+    backgroundColor: '#4a4a4a',
+    height: 50,
     borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 12,
-    flexDirection: 'row',
     justifyContent: 'center',
-  },
-  biometricButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    alignItems: 'center',
+    marginTop: 16,
+    flexDirection: 'row',
   },
   biometricIcon: {
     marginRight: 8,
   },
-  forgotPasswordButton: {
-    marginTop: 16,
-    alignItems: 'center',
+  biometricButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  forgotPasswordLink: {
+    alignSelf: 'center',
+    marginTop: 20,
   },
   forgotPasswordText: {
-    color: '#3498db',
+    color: colors.secondary,
+    fontSize: 14,
+  },
+  backToLoginLink: {
+    alignSelf: 'center',
+    marginTop: 20,
+  },
+  backToLoginText: {
+    color: colors.secondary,
     fontSize: 14,
   },
 });

@@ -8,6 +8,7 @@ import { setLoading, resetOcr } from '../../store/slices/ocrSlice';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { InventoryStackParamList } from '../../navigation/types/navigation';
+import { colors, textColors } from '../../theme';
 
 // Define Product interface
 interface Product {
@@ -420,17 +421,18 @@ const styles = StyleSheet.create({
   },
   selectedCard: {
     borderWidth: 2,
-    borderColor: '#2196F3',
+    borderColor: colors.primary,
   },
   productName: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
+    color: textColors.primary,
   },
   updateSection: {
     marginTop: 24,
     padding: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
     borderRadius: 8,
   },
   actionButtons: {
@@ -441,19 +443,23 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     marginHorizontal: 4,
+    color: textColors.secondary,
   },
   input: {
     marginBottom: 16,
   },
   updateButton: {
     marginBottom: 16,
+    color: textColors.primary,
   },
   retakeButton: {
     marginTop: 24,
+    color: textColors.primary,
   },
   globalSearchButton: {
     width: '100%',
     marginTop: 8,
+    color: textColors.primary,
   },
 });
 

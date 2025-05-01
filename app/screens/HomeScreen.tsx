@@ -6,9 +6,10 @@ import { RootState } from '../store';
 import { useNavigation } from '@react-navigation/native';
 import { colors, textColors } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
+import { InventoryStackParamList } from '../navigation/types/navigation';
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<InventoryStackParamList>>();
   const { user } = useSelector((state: RootState) => state.auth);
 
   return (
@@ -30,7 +31,7 @@ const HomeScreen = () => {
         <Card.Content style={styles.cardContent}>
           <Button 
             mode="contained" 
-            onPress={() => navigation.navigate('ProductTypeSelection' as never)}
+            onPress={() => navigation.navigate('ProductTypeSelection')}
             style={styles.button}
             icon="barcode-scan"
             buttonColor={colors.primary}
@@ -40,7 +41,7 @@ const HomeScreen = () => {
           
           <Button 
             mode="outlined" 
-            onPress={() => navigation.navigate('ProductList' as never)}
+            onPress={() => navigation.navigate('ProductList')}
             style={styles.button}
             icon="view-list"
             textColor={colors.primary}

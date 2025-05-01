@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Inventory APP",
-    "slug": "inventory-app",
-    "scheme": "inventory-app",
+    "name": "Artesans Inventory APP",
+    "slug": "artesans-inventory-app",
+    "scheme": "artesans-inventory-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -18,9 +18,9 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.inventory-app",
+      "bundleIdentifier": "com.anonymous.artesans-inventory-app",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Allow Inventory APP to use Face ID to authenticate you and provide secure access to your account."
+        "NSFaceIDUsageDescription": "Allow Artesans Inventory APP to use Face ID to authenticate you and provide secure access to your account."
       }
     },
     "android": {
@@ -29,8 +29,11 @@
       },
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
-      ]
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ],
+      "package": "com.jasminexjin.artesansinventoryapp"
     },
     "web": {
       "bundler": "metro",
@@ -40,22 +43,28 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Inventory APP to access your camera to scan product labels."
+          "cameraPermission": "Allow Artesans Inventory APP to access your camera to scan product labels."
         }
       ],
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Allow ${name} to access your Face ID biometric data."
+          "faceIDPermission": "Allow Artesans Inventory APP to access your Face ID biometric data."
         }
       ],
       [
         "expo-secure-store",
         {
           "configureAndroidBackup": true,
-          "faceIDPermission": "Allow Inventory APP to access your Face ID biometric data."
+          "faceIDPermission": "Allow Artesans Inventory APP to access your Face ID biometric data."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d992c620-66e1-4bb7-af0b-d21eb91f87b6"
+      }
+    },
+    "owner": "jasminexjin"
   }
 }

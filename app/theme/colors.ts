@@ -43,7 +43,8 @@ export const textColors = {
   secondary: '#5A5C64',   // Medium gray for secondary text
   inverse: '#FFFFFF',     // White text (on dark backgrounds)
   disabled: '#9e9e9e',    // Light gray for disabled text
-  link: '#0693e3',        // Bright blue for links
+  link: '#0693e3',   
+  error: '#F44336',
 };
 
 export default {

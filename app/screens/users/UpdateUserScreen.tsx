@@ -17,14 +17,12 @@ import {
   Dialog,
   Paragraph,
   Card,
-  Searchbar,
   Menu,
-  DividerProps,
 } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { UserManagementStackParamList } from '../../navigation/types/navigation';
-import { getUsersByUuid, updateUser, addPermissions, removePermissions, getGroupUserIn } from '../../services/api/userApi';
+import { getUsersByUuid, updateUser, addPermissions, removePermissions, getGroupUserIn, getUserPermissions } from '../../services/api/userApi';
 import { addUserToGroup, removeUserFromGroup, searchGroup } from '../../services/api/groupApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAllGroups } from '../../services/api/groupApi';
@@ -119,8 +117,6 @@ const UpdateUserScreen = () => {
   ]);
   
   // Permission dropdown state
-  const [openPermissions, setOpenPermissions] = useState(false);
-  const [permissionsToAdd, setPermissionsToAdd] = useState<string | null>(null);
   const [selectedPermission, setSelectedPermission] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [permissionDropdownItems, setPermissionDropdownItems] = useState(
@@ -135,6 +131,9 @@ const UpdateUserScreen = () => {
   // Check if user has permission to manage users
   const hasManagePermission = currentUser?.uuid === userId || 
     (currentUser?.permissions?.includes('manage_user') ?? false);
+
+  // Add state variable to store current permissions
+  const [currentPermissionsList, setCurrentPermissionsList] = useState<string[]>([]);
 
   useEffect(() => {
     fetchUser();
@@ -402,41 +401,6 @@ const UpdateUserScreen = () => {
         }
       }
       
-      // Apply permission changes
-      let permissionError = false;
-      
-      for (const permission of permissionsChanged.added) {
-        const addResult = await addPermissions(permission, userId);
-        if (addResult.error) {
-          setSnackbarMessage(`Error adding permission: ${addResult.error.message}`);
-          setSnackbarVisible(true);
-          permissionError = true;
-          break;
-        }
-      }
-      
-      if (!permissionError) {
-        for (const permission of permissionsChanged.removed) {
-          const removeResult = await removePermissions(permission, userId);
-          if (removeResult.error) {
-            setSnackbarMessage(`Error removing permission: ${removeResult.error.message}`);
-            setSnackbarVisible(true);
-            permissionError = true;
-            break;
-          }
-        }
-      }
-      
-      if (!permissionError) {
-        setSnackbarMessage('User updated successfully');
-        setSnackbarVisible(true);
-        
-        // Reset permission changes
-        setPermissionsChanged({ added: [], removed: [] });
-        
-        // Refresh user data
-        await fetchUser();
-      }
     } catch (error) {
       console.error('Error updating user:', error);
       setSnackbarMessage('An unexpected error occurred. Please try again.');
@@ -447,84 +411,76 @@ const UpdateUserScreen = () => {
   };
 
   // Add permission
-  const addPermission = (permission: string) => {
-    // Don't add if user already has this permission
-    if (originalUser?.permissions?.includes(permission)) {
+  const handleAddPermission = async (permission: string, user_uuid: string) => {
+    if (!selectedPermission) {
+      setSnackbarMessage('Please select a permission');
+      setSnackbarVisible(true);
       return;
     }
-    
-    // Check if we previously removed this permission
-    if (permissionsChanged.removed.includes(permission)) {
-      setPermissionsChanged(prev => ({
-        ...prev,
-        removed: prev.removed.filter(p => p !== permission)
-      }));
+    const result = await addPermissions(permission, user_uuid);
+    if (result.error) {
+      setSnackbarMessage(`Error adding permission: ${result.error.message}`);
+      setSnackbarVisible(true);
     } else {
-      setPermissionsChanged(prev => ({
-        ...prev,
-        added: [...prev.added, permission]
-      }));
+      setSnackbarMessage('Permission added successfully');
+      setSnackbarVisible(true);
+      setCurrentPermissionsList(prev => [...prev, permission]);
     }
-    
-    // Clear the selection
-    setPermissionsToAdd(null);
   };
 
   // Remove permission
-  const removePermission = (permission: string) => {
+  const handleRemovePermission = async (permission: string, user_uuid: string) => {
     // Set up confirmation dialog
     setConfirmDialogTitle('Remove Permission');
     setConfirmDialogMessage('Are you sure you want to remove this permission?');
-    setConfirmDialogAction(() => () => {
+    setConfirmDialogAction(() => async () => {
       // Check if permission is in the added list
-      if (permissionsChanged.added.includes(permission)) {
-        setPermissionsChanged(prev => ({
-          ...prev,
-          added: prev.added.filter(p => p !== permission)
-        }));
-      } 
-      // If it's an original permission, add to removed list
-      else if (originalUser?.permissions?.includes(permission)) {
-        setPermissionsChanged(prev => ({
-          ...prev,
-          removed: [...prev.removed, permission]
-        }));
+      const response = await removePermissions(permission, user_uuid);
+      if (response.error) {
+        setSnackbarMessage(response.error.message);
+        setSnackbarVisible(true);
+      } else {
+        setSnackbarMessage('Permission removed successfully');
+        setSnackbarVisible(true);
+        setCurrentPermissionsList(prev => prev.filter(p => p !== permission));
       }
       setConfirmDialogVisible(false);
     });
-    
     setConfirmDialogVisible(true);
   };
 
   // Get current permissions (original + added - removed)
-  const getCurrentPermissions = (): string[] => {
-    const originalPermissions = originalUser?.permissions || [];
-    const added = permissionsChanged.added || [];
-    const removed = permissionsChanged.removed || [];
+  const getCurrentPermissions = async (): Promise<string[]> => {
+    const response = await getUserPermissions(userId);
+    let originalPermissions: string[] = [];
     
-    // Start with original permissions
-    const currentPermissions = [...originalPermissions];
+    if (response?.data) {
+      // Handle the permissions array based on the API response format
+      originalPermissions = Array.isArray(response.data) 
+        ? response.data.map((p: {name: string}) => p.name) 
+        : (response.data.permissions || []);
+    }
     
-    // Add new permissions
-    added.forEach(permission => {
-      if (!currentPermissions.includes(permission)) {
-        currentPermissions.push(permission);
-      }
-    });
     
-    // Remove permissions
-    const filteredPermissions = currentPermissions.filter(
-      permission => !removed.includes(permission)
-    );
+    setCurrentPermissionsList(originalPermissions);
     
-    return filteredPermissions;
+    return originalPermissions;
   };
+
+  // Update permissions list when needed
+  useEffect(() => {
+    const updatePermissions = async () => {
+      const permissions = await getCurrentPermissions();
+      setCurrentPermissionsList(permissions);
+    };
+    
+    updatePermissions();
+  });
 
   // Get available permissions to add (those not already assigned)
   const getAvailablePermissions = (): string[] => {
-    const currentPermissions = getCurrentPermissions();
     return AVAILABLE_PERMISSIONS.filter(
-      permission => !currentPermissions.includes(permission)
+      permission => !currentPermissionsList.includes(permission)
     );
   };
 
@@ -666,7 +622,7 @@ const UpdateUserScreen = () => {
           
           {hasManagePermission && (
             <View style={styles.groupSection}>
-              <Headline style={styles.sectionTitle}>Group Membership</Headline>
+              <Headline style={styles.sectionTitle}>Groups</Headline>
               <Divider style={styles.divider} />
               
               {groupLoading ? (
@@ -777,16 +733,16 @@ const UpdateUserScreen = () => {
                 <Text style={styles.subheading}>Current Permissions</Text>
                 <FlatList
                   horizontal
-                  data={getCurrentPermissions()}
+                  data={currentPermissionsList}
                   keyExtractor={(item, index) => `${item}-${index}`}
                   renderItem={({ item }) => (
-                  <Chip
+                    <Chip
                       style={styles.permissionChip}
-                      onClose={() => removePermission(item)}
+                      onClose={() => handleRemovePermission(item, userId)}
                       icon="key-variant" >
                       {item}
-                     </Chip>
-                      )}
+                    </Chip>
+                  )}
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.chipsContainer}
                 />
@@ -814,27 +770,13 @@ const UpdateUserScreen = () => {
         ))}
       </Menu>
 
-          <Button mode="contained" onPress={async () => {
-            if (selectedPermission) {
-              try {
-                const result = await addPermissions(selectedPermission, userId);
-                if (result.error) {
-                  setSnackbarMessage(`Error adding permission: ${result.error.message}`);
-                  setSnackbarVisible(true);
-                } else {
-                  addPermission(selectedPermission);
-                  setSnackbarMessage('Permission added successfully');
-                  setSnackbarVisible(true);
-                }
-              } catch (error) {
-                console.error('Error adding permission:', error);
-                setSnackbarMessage('An unexpected error occurred while adding permission.');
-                setSnackbarVisible(true);
-              }
+          <Button mode="contained" onPress={() => {
+            if (selectedPermission && userId) {
+              handleAddPermission(selectedPermission, userId)
             }
           }} style={styles.addButton} disabled={!selectedPermission || saving}>
-                Add
-            </Button>
+            Add
+          </Button>
           </View>
         </View>
       </View>

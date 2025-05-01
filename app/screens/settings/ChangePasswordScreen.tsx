@@ -4,6 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { TextInput, Button, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, textColors } from '../../theme';
+
 
 const ChangePasswordScreen = () => {
   const navigation = useNavigation();
@@ -214,11 +216,6 @@ const ChangePasswordScreen = () => {
       </View>
     </View>
   ) : (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-      style={styles.container}
-    >
       <ScrollView 
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
@@ -236,14 +233,13 @@ const ChangePasswordScreen = () => {
 
         <Content />
       </ScrollView>
-    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   scrollContainer: {
     padding: 16,
@@ -261,6 +257,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 24,
     paddingVertical: 8,
+    color: textColors.primary,
   },
   backButton: {
     padding: 8,
@@ -268,10 +265,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: textColors.primary,
   },
   formContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 10,
     padding: 16,
     shadowColor: '#000',
@@ -291,10 +288,10 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#ffd0d0',
+    borderColor: colors.error,
   },
   errorText: {
-    color: '#e74c3c',
+    color: colors.error,
     fontSize: 14,
   },
   inputContainer: {
@@ -302,7 +299,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#333',
+    color: textColors.primary,
     marginBottom: 8,
     fontWeight: '500',
   },
@@ -310,7 +307,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   input: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: colors.background,
     fontSize: 16,
   },
   changeButton: {
@@ -321,13 +318,13 @@ const styles = StyleSheet.create({
   resetContainer: {
     marginTop: 24,
     padding: 16,
-    backgroundColor: '#f0f7ff',
+    backgroundColor: colors.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d0e3ff',
+    borderColor: colors.primary,
   },
   resetText: {
-    color: '#333',
+    color: textColors.primary,
     fontSize: 14,
     marginBottom: 16,
   },
@@ -339,7 +336,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toggleResetText: {
-    color: '#3498db',
+    color: colors.primary,
     fontSize: 14,
   },
 });

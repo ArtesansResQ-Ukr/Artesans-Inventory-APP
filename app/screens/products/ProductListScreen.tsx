@@ -1,8 +1,8 @@
 // app/screens/products/ProductListScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-import { Searchbar, Card, Text, Chip, ActivityIndicator, Divider, useTheme } from 'react-native-paper';
-import { getProducts } from '../../services/api/productApi';
+import { Searchbar, Card, Text, Chip, ActivityIndicator, Divider, useTheme, Button, Snackbar } from 'react-native-paper';
+import { getProducts, exportProductsToExcel } from '../../services/api/productApi';
 import { getAllGroups } from '../../services/api/groupApi';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -22,6 +22,9 @@ const ProductListScreen = () => {
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [groups, setGroups] = useState<{[key: string]: string}>({});
   const [groupsMap, setGroupsMap] = useState<{[key: string]: string}>({});
+  const [exporting, setExporting] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   // Fetch products on component mount
   useEffect(() => {
@@ -122,6 +125,22 @@ const ProductListScreen = () => {
     }
   };
 
+  // Handle export to Excel
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      await exportProductsToExcel();
+      setSnackbarMessage('Products exported successfully!');
+      setSnackbarVisible(true);
+    } catch (err) {
+      console.error('Error exporting products:', err);
+      setSnackbarMessage('Failed to export products');
+      setSnackbarVisible(true);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Render product item
   const renderProductItem = ({ item }: { item: any }) => (
     <Card style={styles.card} onPress={() => navigation.navigate('ProductDetail', { productUuid: item.uuid , userUuid: item.user_uuid })}>
@@ -139,14 +158,26 @@ const ProductListScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Searchbar
-        placeholder="Search products"
-        onChangeText={onChangeSearch}
-        value={searchQuery}
-        style={styles.searchBar}
-        iconColor={colors.primary}
-        inputStyle={{color: textColors.primary}}
-      />
+      <View style={styles.topControls}>
+        <Searchbar
+          placeholder="Search products"
+          onChangeText={onChangeSearch}
+          value={searchQuery}
+          style={styles.searchBar}
+          iconColor={colors.primary}
+          inputStyle={{color: textColors.primary}}
+        />
+        <Button 
+          mode="contained" 
+          onPress={handleExport}
+          loading={exporting}
+          disabled={exporting}
+          icon="file-excel"
+          style={styles.exportButton}
+        >
+          Export
+        </Button>
+      </View>
       
       {/* Group filter chips */}
       {Object.keys(groups).length > 0 && (
@@ -198,6 +229,16 @@ const ProductListScreen = () => {
           contentContainerStyle={styles.list}
         />
       )}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        action={{
+          label: 'OK',
+          onPress: () => setSnackbarVisible(false),
+        }}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </View>
   );
 };
@@ -215,8 +256,13 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: colors.background
   },
-  searchBar: {
+  topControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
+  },
+  searchBar: {
+    marginRight: 8,
     elevation: 2,
     backgroundColor: colors.white,
   },
@@ -286,6 +332,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  exportButton: {
+    marginLeft: 8,
   },
 });
 

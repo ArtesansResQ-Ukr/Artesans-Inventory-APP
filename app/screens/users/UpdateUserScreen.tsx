@@ -22,7 +22,7 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { UserManagementStackParamList } from '../../navigation/types/navigation';
-import { getUsersByUuid, updateUser, addPermissions, removePermissions, getGroupUserIn, getUserPermissions } from '../../services/api/userApi';
+import { getUsersByUuid, updateUser, addPermissions, removePermissions, getGroupUserIn, getUserPermissions, getAllPermissions } from '../../services/api/userApi';
 import { addUserToGroup, removeUserFromGroup, searchGroup } from '../../services/api/groupApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAllGroups } from '../../services/api/groupApi';
@@ -60,22 +60,16 @@ interface UserGroups {
   }[];
 }
 
+interface Permission {
+  uuid: string;
+  name: string;
+}
+
 interface SearchGroupResult {
   uuid: string;
 }
 
-// Available permissions (should come from an API ideally)
-const AVAILABLE_PERMISSIONS = [
-  'create_user',
-  'manage_user',
-  'create_group',
-  'manage_group',
-  'create_role',
-  'manage_role',
-  'read_products',
-  'manage_products',
-  'read_history'
-];
+
 
 type UpdateUserScreenRouteProp = RouteProp<UserManagementStackParamList, 'UpdateUser'>;
 
@@ -99,10 +93,7 @@ const UpdateUserScreen = () => {
   const [confirmDialogAction, setConfirmDialogAction] = useState<() => void>(() => {});
   const [confirmDialogTitle, setConfirmDialogTitle] = useState('');
   const [confirmDialogMessage, setConfirmDialogMessage] = useState('');
-  const [permissionsChanged, setPermissionsChanged] = useState<{
-    added: string[];
-    removed: string[];
-  }>({ added: [], removed: [] });
+
   
   // Group state
   const [userGroup, setUserGroup] = useState<Group | null>(null);
@@ -117,20 +108,15 @@ const UpdateUserScreen = () => {
   ]);
   
   // Permission dropdown state
-  const [selectedPermission, setSelectedPermission] = useState<string | null>(null);
+  const [selectedPermission, setSelectedPermission] = useState<Permission | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [permissionDropdownItems, setPermissionDropdownItems] = useState(
-    AVAILABLE_PERMISSIONS.map(perm => ({ label: perm, value: perm }))
-  );
+  const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
 
   // State for groups dropdown
   const [groupMenuVisible, setGroupMenuVisible] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<{uuid: string, name: string} | null>(null);
   const [availableGroups, setAvailableGroups] = useState<{uuid: string, name: string}[]>([]);
 
-  // Check if user has permission to manage users
-  const hasManagePermission = currentUser?.uuid === userId || 
-    (currentUser?.permissions?.includes('manage_user') ?? false);
 
   // Add state variable to store current permissions
   const [currentPermissionsList, setCurrentPermissionsList] = useState<string[]>([]);
@@ -411,20 +397,21 @@ const UpdateUserScreen = () => {
   };
 
   // Add permission
-  const handleAddPermission = async (permission: string, user_uuid: string) => {
+  const handleAddPermission = async (permission_uuid: string, user_uuid: string) => {
     if (!selectedPermission) {
       setSnackbarMessage('Please select a permission');
       setSnackbarVisible(true);
       return;
     }
-    const result = await addPermissions(permission, user_uuid);
+    console.log(permission_uuid, user_uuid);
+    const result = await addPermissions(permission_uuid, user_uuid);
     if (result.error) {
       setSnackbarMessage(`Error adding permission: ${result.error.message}`);
       setSnackbarVisible(true);
     } else {
       setSnackbarMessage('Permission added successfully');
       setSnackbarVisible(true);
-      setCurrentPermissionsList(prev => [...prev, permission]);
+      setCurrentPermissionsList(prev => [...prev, selectedPermission.name]);
     }
   };
 
@@ -472,16 +459,23 @@ const UpdateUserScreen = () => {
     const updatePermissions = async () => {
       const permissions = await getCurrentPermissions();
       setCurrentPermissionsList(permissions);
+      
+      // Also fetch available permissions
+      const allPermissions = await getAvailablePermissions();
+      setAvailablePermissions(allPermissions);
     };
     
     updatePermissions();
-  });
+  }, [userId]);
 
   // Get available permissions to add (those not already assigned)
-  const getAvailablePermissions = (): string[] => {
-    return AVAILABLE_PERMISSIONS.filter(
-      permission => !currentPermissionsList.includes(permission)
-    );
+  const getAvailablePermissions = async (): Promise<Permission[]> => {
+    const result = await getAllPermissions();
+    if (result.error) {
+      setSnackbarMessage(result.error.message);
+      setSnackbarVisible(true);
+    }
+    return result.data?.permissions || [];
   };
 
   // If loading, show loading indicator
@@ -620,7 +614,7 @@ const UpdateUserScreen = () => {
             />
           </View>
           
-          {hasManagePermission && (
+          {(
             <View style={styles.groupSection}>
               <Headline style={styles.sectionTitle}>Groups</Headline>
               <Divider style={styles.divider} />
@@ -724,7 +718,7 @@ const UpdateUserScreen = () => {
             </View>
           )}
           
-          {hasManagePermission && (
+          {(
             <View style={styles.permissionsSection}>
               <Headline style={styles.sectionTitle}>Permissions</Headline>
               <Divider style={styles.divider} />
@@ -758,21 +752,21 @@ const UpdateUserScreen = () => {
               <Button
                     mode="outlined"
                     onPress={() => setMenuVisible(true)}
-                    disabled={saving || getAvailablePermissions().length === 0}>
-              {selectedPermission || 'Select permission'}
+                    disabled={saving || availablePermissions.length === 0}>
+              {selectedPermission?.name || 'Select permission'}
               </Button>
             }>
-            {getAvailablePermissions().map((perm) => (
-          <Menu.Item key={perm} onPress={() => {
-            setSelectedPermission(perm);
+            {availablePermissions.map((perm: Permission) => (
+          <Menu.Item key={perm.uuid} onPress={() => {
+            setSelectedPermission({ uuid: perm.uuid, name: perm.name });
             setMenuVisible(false);
-          }} title={perm} />
+          }} title={perm.name} />
         ))}
       </Menu>
 
           <Button mode="contained" onPress={() => {
             if (selectedPermission && userId) {
-              handleAddPermission(selectedPermission, userId)
+              handleAddPermission(selectedPermission.uuid, userId)
             }
           }} style={styles.addButton} disabled={!selectedPermission || saving}>
             Add

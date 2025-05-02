@@ -35,6 +35,7 @@ import {
   getProductQuantityInOneGroup
 } from '../../services/api/productApi';
 import { getAllGroups, getMyGroups, getGroupByUuid } from '../../services/api/groupApi';
+import { getMe } from '../../services/api/userApi';
 import { format, parseISO } from 'date-fns';
 import { colors, textColors } from '../../theme';
 
@@ -88,9 +89,8 @@ const ProductDetailScreen = () => {
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   
-  // Dropdown state
-  const [openDropdown, setOpenDropdown] = useState(false);
-  const [groups, setGroups] = useState<{label: string, value: string}[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [userGroup, setUserGroup] = useState<Group | null>(null);
   const [selectedGroupLabel, setSelectedGroupLabel] = useState('Global (All Groups)');
 
   // Fetch product details
@@ -122,32 +122,15 @@ const ProductDetailScreen = () => {
           }
           
           // Prepare groups for dropdown
-          const groupOptions = [
-            { label: 'Global (All Groups)', value: 'global' }
-          ];
-          
-          // Get all groups for the dropdown options
-          const allGroups = await getAllGroups();
-          if (allGroups && allGroups.data && allGroups.data.length > 0) {
-            allGroups.data.forEach((group) => {
-              groupOptions.push({
-                label: `${group.name}`,
-                value: group.uuid
-              });
-            });
-          }
-          
-          setGroups(groupOptions);
-          
-          // Get my groups to set default value
-          const myGroups = await getMyGroups();
-          if (myGroups && myGroups.data && myGroups.data.length > 0) {
-            // Set the first of my groups as default
-            setSelectedGroup(myGroups.data[0].uuid);
-            setSelectedGroupLabel(myGroups.data[0].name);
-          } else {
-            // Fall back to global if no user groups
-            setSelectedGroup('global');
+          const user = await getMe();
+          if (user && user.data) {
+            const userGroupUuid = user.data.group_uuid;
+            if (userGroupUuid) {
+              const groupWithName = await getGroupByUuid(userGroupUuid);
+              if (groupWithName.data) {
+                setUserGroup(groupWithName.data);
+              }
+            }
           }
         }
       } catch (error) {
@@ -183,15 +166,6 @@ const ProductDetailScreen = () => {
     fetchProductHistory();
   }, [productUuid]);
 
-  // Update the selected group label when selectedGroup changes
-  useEffect(() => {
-    if (selectedGroup) {
-      const groupItem = groups.find(item => item.value === selectedGroup);
-      if (groupItem) {
-        setSelectedGroupLabel(groupItem.label);
-      }
-    }
-  }, [selectedGroup, groups]);
 
   // Format date function
   const formatDate = (dateString: string) => {
@@ -397,39 +371,9 @@ const ProductDetailScreen = () => {
           <Card.Content>
             <Title style={styles.cardTitle}>Update Inventory</Title>
             
-            <Text style={styles.dropdownLabel}>Select Group</Text>
+            <Text style={styles.dropdownLabel}>Current Group</Text>
             <View style={styles.menuContainer}>
-              <Menu
-                visible={openDropdown}
-                onDismiss={() => setOpenDropdown(false)}
-                anchor={
-                  <Button 
-                    mode="outlined" 
-                    onPress={() => setOpenDropdown(true)}
-                    style={styles.menuButton}
-                    icon="chevron-down"
-                    contentStyle={styles.menuButtonContent}
-                    disabled={true}
-                    textColor={colors.primary}
-                  >
-                    {selectedGroupLabel}
-                  </Button>
-                }
-              >
-                {groups.map((group) => (
-                  <Menu.Item
-                    key={group.value}
-                    onPress={() => {
-                      setSelectedGroup(group.value);
-                      setSelectedGroupLabel(group.label);
-                      setOpenDropdown(false);
-                    }}
-                    title={group.label}
-                    style={selectedGroup === group.value ? styles.selectedMenuItem : {}}
-                    titleStyle={selectedGroup === group.value ? styles.selectedMenuItemText : {}}
-                  />
-                ))}
-              </Menu>
+              <Text style={styles.dropdownLabel}>{userGroup?.name}</Text>
             </View>
             
             <View style={styles.quantityInputContainer}>

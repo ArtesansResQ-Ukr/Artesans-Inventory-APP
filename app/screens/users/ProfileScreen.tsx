@@ -197,8 +197,8 @@ const ProfileScreen = () => {
       }
       
       // Store the history data and sort it chronologically (newest first)
-      if (result.data && result.data.product_user_history) {
-        const sortedHistory = [...result.data.product_user_history].sort((a, b) => {
+      if (result) {
+        const sortedHistory = [...result].sort((a, b) => {
           return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
         });
         const historyWithProductName = await Promise.all(sortedHistory.map(async (item) => ({

@@ -73,6 +73,11 @@ interface UserGroups {
     }[];
 }
 
+interface Permission {
+    uuid: string;
+    name: string;
+}
+
 // Helper function to extract error messages
 const extractErrorMessage = (error: any): string => {
     if (error?.response?.data?.detail) {
@@ -264,3 +269,18 @@ export const changeGroup = async (group_uuid: string): Promise<ApiResponse<{mess
         }
       }
 }
+
+export const getAllPermissions = async (): Promise<ApiResponse<{permissions: Permission[]}>> => {
+    try {
+        const response = await apiClient.get('/users/view-all-permissions');
+        return { data: response.data.permissions };
+    } catch (error: any) {
+        console.error('Failed to get all permissions:', error);
+        return { 
+            error: {
+                status: error?.response?.status || 500,
+                message: extractErrorMessage(error)
+            }
+        };
+    }
+};

@@ -3,12 +3,13 @@ import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-nat
 import { Text, Button, Card, ActivityIndicator, TextInput } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
-import { convertOcrToProduct, getProductMatches, increaseProductQuantity, decreaseProductQuantity, getProductMatchesGlobal } from '../../services/api/productApi';
+import { convertOcrToProduct, getProductMatches, increaseProductQuantity, decreaseProductQuantity, getProductMatchesGlobal, getProductQuantityInAllGroups } from '../../services/api/productApi';
 import { setLoading, resetOcr } from '../../store/slices/ocrSlice';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { InventoryStackParamList } from '../../navigation/types/navigation';
 import { colors, textColors } from '../../theme';
+import { getGroupByUuid } from '../../services/api/groupApi';
 
 // Define Product interface
 interface Product {
@@ -19,6 +20,13 @@ interface Product {
   quantity: number;
   comments?: string;
   ocr_text?: string;
+}
+
+interface ProductGroupLink {
+  product_uuid: string;
+  group_uuid: string;
+  quantity: number;
+  group_name?: string;
 }
 
 type ExistingProductMatchScreenNavigationProp = StackNavigationProp<InventoryStackParamList>;
@@ -37,6 +45,7 @@ const ExistingProductMatchScreen = () => {
   const [actionType, setActionType] = useState('add'); // 'add' or 'remove'
   const [convertingOcr, setConvertingOcr] = useState(true);
   const [isGlobalSearching, setIsGlobalSearching] = useState(false);
+  const [groupSpecificQuantities, setGroupSpecificQuantities] = useState<ProductGroupLink[]>([]);
   // Process OCR text when component mounts
   useEffect(() => {
     const convertOcr = async () => {
@@ -84,9 +93,9 @@ const ExistingProductMatchScreen = () => {
             setIsNewProduct(true);
           } else {
             setIsNewProduct(false);
-            console.log('inside');
             setMatchingProducts(matches.matched_products);
             setMatchedUuids(matches.matched_uuids);
+            handleGetGroupSpecificQuantities();
           }
           
         } catch (error) {
@@ -101,6 +110,27 @@ const ExistingProductMatchScreen = () => {
     findMatches();
   }, [convertedProduct]);
 
+  const handleGetGroupSpecificQuantities = async () => {
+    if (!matched_uuids) {
+      return;
+    }
+    const groupSpecificQuantities: ProductGroupLink[] = [];
+    for (const uuid of matched_uuids) {
+      const groupQuantities = await getProductQuantityInAllGroups(uuid);
+      if (groupQuantities && groupQuantities.length > 0) {
+        // Update product with group quantities
+        const groupQuantitiesWithNames = await Promise.all(groupQuantities.map(async (group: any) => {
+          const groupData = await getGroupByUuid(group.group_uuid);
+          return {
+            ...group,
+            group_name: groupData.data?.name || 'Unknown Group'
+          };
+        }));
+        groupSpecificQuantities.push(...groupQuantitiesWithNames);
+      }
+    }
+    setGroupSpecificQuantities(groupSpecificQuantities);
+  };
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
@@ -146,6 +176,7 @@ const ExistingProductMatchScreen = () => {
     navigation.navigate('Camera');
   };
 
+
   const handleGlobalSearch = async () => {
     if (!convertedProduct) {
       alert('No product information available to search');
@@ -164,6 +195,7 @@ const ExistingProductMatchScreen = () => {
         setIsNewProduct(false);
         setMatchingProducts(globalMatches.matched_products);
         setMatchedUuids(globalMatches.matched_uuids);
+        handleGetGroupSpecificQuantities();
       }
       
     } catch (error) {
@@ -312,9 +344,22 @@ const ExistingProductMatchScreen = () => {
               <Card.Content>
                 <Text style={styles.productName}>{product.name}</Text>
                 <Text>Category: {product.category}</Text>
-                <Text>Current Quantity: {product.quantity}</Text>
+                <Text>Current Total Quantity: {product.quantity}</Text>
                 <Text>Expiration: {product.expiration_date}</Text>
                 <Text>Comments: {product.comments}</Text>
+                <Text style={styles.groupQuantitiesTitle}>Group Quantities:</Text>
+                {groupSpecificQuantities.length > 0 ? (
+                  <View style={styles.groupQuantitiesList}>
+                    {groupSpecificQuantities.map((item, idx) => (
+                      <View key={idx} style={styles.groupQuantityItem}>
+                        <Text style={styles.groupName}>• {item.group_name || 'Unknown Group'}</Text>
+                        <Text style={styles.groupQuantity}>{item.quantity}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.noGroupsText}>No group-specific quantities available</Text>
+                )}
               </Card.Content>
             </Card>
           </TouchableOpacity>
@@ -424,7 +469,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   productName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 4,
     color: textColors.primary,
@@ -460,6 +505,32 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 8,
     color: textColors.primary,
+  },
+  groupQuantitiesTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  groupQuantitiesList: {
+    marginBottom: 16,
+  },
+  groupQuantityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  groupName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  groupQuantity: {
+    fontSize: 14,
+  },
+  noGroupsText: {
+    textAlign: 'center',
+    marginVertical: 16,
+    fontStyle: 'italic',
   },
 });
 

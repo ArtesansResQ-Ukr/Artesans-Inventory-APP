@@ -361,3 +361,20 @@ export const getProductByUuid = async (productUuid: string) => {
     }
   }
 };
+
+export const exportProductsToExcel = async () => {
+  try {
+    const response = await apiClient.get('/products/export-excel');
+    return response.data.message;
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response) {
+      console.error('Failed to export products to excel:', error);
+      const backend_message = error.response.data.detail || 'An unknown error occurred';
+      Alert.alert('Error', backend_message);
+      throw backend_message;
+    } else {
+      console.error('Failed to export products to excel:', error);
+      throw new Error;
+    }
+  }
+};

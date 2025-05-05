@@ -31,10 +31,9 @@ import {
   decreaseProductQuantity, 
   deleteProduct,
   getSpecificProductHistory,
-  getProductQuantityInAllGroups,
-  getProductQuantityInOneGroup
+  getProductQuantityInAllGroups
 } from '../../services/api/productApi';
-import { getAllGroups, getMyGroups, getGroupByUuid } from '../../services/api/groupApi';
+import { getGroupByUuid } from '../../services/api/groupApi';
 import { getMe } from '../../services/api/userApi';
 import { format, parseISO } from 'date-fns';
 import { colors, textColors } from '../../theme';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Button, Card, Divider } from 'react-native-paper';
 import { useSelector } from 'react-redux';
@@ -7,10 +7,30 @@ import { useNavigation } from '@react-navigation/native';
 import { colors, textColors } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { InventoryStackParamList } from '../navigation/types/navigation';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { getProductUserHistory } from '../services/api/productApi';
+import { StackNavigationProp } from '@react-navigation/stack';
+
+
+type ProductListScreenNavigationProp = StackNavigationProp<InventoryStackParamList>;
 
 const HomeScreen = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<InventoryStackParamList>>();
+  const navigation = useNavigation<ProductListScreenNavigationProp>();
   const { user } = useSelector((state: RootState) => state.auth);
+  const [history, setHistory] = useState<any[]>([]);
+
+  const fetchHistory = async () => {
+    const history = await getProductUserHistory();
+    const sortedHistory = history.sort((a: any, b: any) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    const recentHistory = sortedHistory.slice(0, 5);
+    setHistory(recentHistory);
+  }
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   return (
     <ScrollView style={styles.scrollView} contentContainerStyle={styles.container}>
@@ -41,7 +61,7 @@ const HomeScreen = () => {
           
           <Button 
             mode="outlined" 
-            onPress={() => navigation.navigate('ProductList')}
+            onPress={() => navigation.navigate('ProductList', { userId: user?.uuid || '' })}
             style={styles.button}
             icon="view-list"
             textColor={colors.primary}
@@ -70,10 +90,12 @@ const HomeScreen = () => {
           <Text style={styles.cardHeaderText}>Recent Activity</Text>
         </View>
         <Card.Content style={styles.cardContent}>
-          <View style={styles.activityItem}>
-            <View style={styles.activityDot} />
-            <Text style={styles.activityText}>Your recent activity will be shown here.</Text>
-          </View>
+          {history.map((item, index) => (
+            <View key={index} style={styles.activityItem}>
+              <View style={styles.activityDot} />
+              <Text style={styles.activityText}>{item.action}</Text>
+            </View>
+          ))}
             
         </Card.Content>
       </Card>

@@ -2,6 +2,9 @@ import apiClient from './apiClient';
 import { API_URL } from '@env';
 import axios, { AxiosError } from 'axios';
 import { Alert } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { apiConfig } from '../../config/apiConfig';
 // Define types
 interface Product {
   uuid?: string;
@@ -105,33 +108,6 @@ export const createProduct = async (product: Product) => {
       throw backend_message;
     } else {
       console.error('Failed to create product:', error);
-      throw new Error;
-    }
-  }
-};
-
-/**
- * Select a product from matched options
- * 
- * @param extractedProduct - The product extracted from OCR
- * @param selectedProductId - ID of the selected product (optional)
- * @returns Promise with selected product
- */
-export const selectProduct = async (extractedProduct: Product, selectedProductId?: string) => {
-  try {
-    const response = await apiClient.post(`/products/select`, {
-      extracted_product: extractedProduct,
-      selected_product_id: selectedProductId
-    });
-    return response.data;
-  } catch (error: unknown) {
-    if (error instanceof AxiosError && error.response) {
-      console.error('Failed to select product:', error);
-      const backend_message = error.response.data.detail || 'An unknown error occurred';
-      Alert.alert('Error', backend_message);
-      throw backend_message;
-    } else {
-      console.error('Failed to select product:', error);
       throw new Error;
     }
   }
@@ -362,19 +338,73 @@ export const getProductByUuid = async (productUuid: string) => {
   }
 };
 
+/**
+ * Downloads the Excel file with all products and opens the share dialog
+ * 
+ * @returns Promise - Resolves when file is downloaded and shared
+ */
 export const exportProductsToExcel = async () => {
   try {
-    const response = await apiClient.get('/products/export-excel');
-    return response.data.message;
+    // Get the base URL from apiConfig
+    const baseURL = apiConfig.baseURL;
+    const endpoint = '/products/export-excel';
+    const url = `${baseURL}${endpoint}`;
+    
+    // Create a unique filename with timestamp
+    const timestamp = new Date().getTime();
+    const filename = `products_export_${timestamp}.xlsx`;
+    const fileUri = `${FileSystem.documentDirectory}${filename}`;
+    
+    // Get authentication token if it exists
+    const authHeaders: Record<string, string> = {};
+    if (apiClient.defaults.headers.common?.Authorization) {
+      authHeaders['Authorization'] = apiClient.defaults.headers.common.Authorization as string;
+    }
+    console.log('authHeaders:', authHeaders);
+
+    // Download the file
+    const downloadResult = await FileSystem.downloadAsync(
+      url,
+      fileUri,
+      {
+        headers: authHeaders
+      }
+    );
+
+    const fileInfo = await FileSystem.getInfoAsync(fileUri);
+    console.log('File downloaded:', fileInfo, 'bytes');
+
+
+    
+    // Check if download was successful
+    if (downloadResult.status !== 200) {
+      throw new Error(`Failed to download file: Status ${downloadResult.status}`);
+    }
+    
+    // Check if sharing is available
+    const isSharingAvailable = await Sharing.isAvailableAsync();
+    if (!isSharingAvailable) {
+      throw new Error("Sharing is not available on this device");
+    }
+    
+    // Open the share dialog
+    await Sharing.shareAsync(fileUri, {
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      dialogTitle: 'Save or Open Product Export',
+      UTI: 'com.microsoft.excel.xlsx' // Used for iOS
+    });
+    
+    return true;
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response) {
-      console.error('Failed to export products to excel:', error);
+      console.error('Failed to export products:', error);
       const backend_message = error.response.data.detail || 'An unknown error occurred';
       Alert.alert('Error', backend_message);
       throw backend_message;
     } else {
-      console.error('Failed to export products to excel:', error);
-      throw new Error;
+      console.error('Failed to export products:', error);
+      throw new Error(error instanceof Error ? error.message : 'Unknown error occurred');
     }
   }
 };
+

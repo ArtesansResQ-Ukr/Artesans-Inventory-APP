@@ -227,23 +227,16 @@ const ProfileScreen = () => {
       setPermissionsLoading(true);
       setPermissionsError(null);
       
-      const result = await getUserPermissions(userId);
-      if (result.error) {
-        // 404 error means user is not in any group - this is a valid state
-        if (result.error.status === 404) {
-          setUserPermissions([]);
-        } else {
-          setPermissionsError(result.error.message);
-        }
-        return;
+      const response = await getUserPermissions(userId);
+      let originalPermissions: string[] = [];
+    
+      if (response?.data) {
+        // Handle the permissions array based on the API response format
+          originalPermissions = Array.isArray(response.data) 
+          ? response.data.map((p: {name: string}) => p.name) 
+          : (response.data.permissions || []);
       }
-      
-      if (result.data) {
-        setUserPermissions(result.data.permissions);
-      } else {
-        // This handles the case where API returns an empty response
-        setUserPermissions([]);
-      }
+      setUserPermissions(originalPermissions);
     } catch (error) {
       console.error('Error fetching user permissions:', error);
       setPermissionsError('An unexpected error occurred fetching permissions information.');

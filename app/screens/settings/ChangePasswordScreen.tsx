@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { TextInput, Button, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, textColors } from '../../theme';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
 
 const ChangePasswordScreen = () => {
@@ -107,6 +108,7 @@ const ChangePasswordScreen = () => {
         <View style={styles.passwordInputContainer}>
           <TextInput
             style={styles.input}
+            autoComplete="current-password"
             placeholder="Enter current password"
             value={oldPassword}
             onChangeText={setOldPassword}
@@ -126,6 +128,7 @@ const ChangePasswordScreen = () => {
         <View style={styles.passwordInputContainer}>
           <TextInput
             style={styles.input}
+            autoComplete="new-password"
             placeholder="Enter new password"
             value={newPassword}
             onChangeText={setNewPassword}
@@ -216,9 +219,14 @@ const ChangePasswordScreen = () => {
       </View>
     </View>
   ) : (
+    <KeyboardAwareScrollView
+      style={{ flex: 1 }}
+      enableOnAndroid={true}
+    >
       <ScrollView 
+        style={styles.container}
         contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
           <TouchableOpacity 
@@ -230,9 +238,112 @@ const ChangePasswordScreen = () => {
           <Text style={styles.headerTitle}>Change Password</Text>
           <View style={{ width: 24 }} />
         </View>
+        <View style={[styles.formContainer, isLargeScreen && styles.formContainerLarge]}>
+      {errorMessage ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </View>
+      ) : null}
 
-        <Content />
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Current Password</Text>
+        <View style={styles.passwordInputContainer}>
+          <TextInput
+            style={styles.input}
+            autoComplete="current-password"
+            placeholder="Enter current password"
+            value={oldPassword}
+            onChangeText={setOldPassword}
+            secureTextEntry={!showOldPassword}
+            right={
+              <TextInput.Icon 
+                icon={showOldPassword ? "eye-off" : "eye"} 
+                onPress={() => setShowOldPassword(!showOldPassword)}
+              />
+            }
+          />
+        </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>New Password</Text>
+        <View style={styles.passwordInputContainer}>
+          <TextInput
+            style={styles.input}
+            autoComplete="new-password"
+            placeholder="Enter new password"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry={!showNewPassword}
+            right={
+              <TextInput.Icon 
+                icon={showNewPassword ? "eye-off" : "eye"} 
+                onPress={() => setShowNewPassword(!showNewPassword)}
+              />
+            }
+          />
+        </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Confirm New Password</Text>
+        <View style={styles.passwordInputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm new password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showConfirmPassword}
+            right={
+              <TextInput.Icon 
+                icon={showConfirmPassword ? "eye-off" : "eye"} 
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              />
+            }
+          />
+        </View>
+      </View>
+
+      <Button
+        mode="contained"
+        onPress={handleChangePassword}
+        style={styles.changeButton}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" size="small" />
+        ) : (
+          "Change Password"
+        )}
+      </Button>
+
+      {showResetOption && (
+        <View style={styles.resetContainer}>
+          <Text style={styles.resetText}>
+            Forgot your password? Request a reset link to your email:
+          </Text>
+          <Button
+            mode="outlined"
+            onPress={handleRequestNewPassword}
+            style={styles.resetButton}
+            disabled={isLoading}
+          >
+            Request New Password
+          </Button>
+        </View>
+      )}
+
+      <TouchableOpacity
+        onPress={() => setShowResetOption(!showResetOption)}
+        style={styles.toggleResetButton}
+      >
+        <Text style={styles.toggleResetText}>
+          {showResetOption ? "Hide reset option" : "Forgot password?"}
+        </Text>
+      </TouchableOpacity>
+    </View>
       </ScrollView>
+    </KeyboardAwareScrollView>
   );
 };
 
@@ -309,6 +420,8 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.background,
     fontSize: 16,
+    height: 50,
+    paddingHorizontal: 10,
   },
   changeButton: {
     marginTop: 8,

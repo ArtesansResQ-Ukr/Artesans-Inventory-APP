@@ -130,11 +130,11 @@ const ProductListScreen = () => {
     try {
       setExporting(true);
       await exportProductsToExcel();
-      setSnackbarMessage('Products exported successfully!');
+      setSnackbarMessage('Excel file downloaded successfully!');
       setSnackbarVisible(true);
     } catch (err) {
-      console.error('Error exporting products:', err);
-      setSnackbarMessage('Failed to export products');
+      console.error('Error downloading Excel file:', err);
+      setSnackbarMessage('Failed to download Excel file');
       setSnackbarVisible(true);
     } finally {
       setExporting(false);
@@ -174,6 +174,8 @@ const ProductListScreen = () => {
           disabled={exporting}
           icon="file-excel"
           style={styles.exportButton}
+          compact={true}
+          labelStyle={styles.exportButtonLabel}
         >
           Export
         </Button>
@@ -260,8 +262,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    justifyContent: 'space-between',
   },
   searchBar: {
+    flex: 1,
     marginRight: 8,
     elevation: 2,
     backgroundColor: colors.white,
@@ -335,6 +339,10 @@ const styles = StyleSheet.create({
   },
   exportButton: {
     marginLeft: 8,
+    paddingHorizontal: 10,
+  },
+  exportButtonLabel: {
+    fontSize: 12,
   },
 });
 

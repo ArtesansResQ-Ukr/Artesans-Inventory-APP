@@ -22,12 +22,14 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { UserManagementStackParamList } from '../../navigation/types/navigation';
-import { getUsersByUuid, updateUser, addPermissions, removePermissions, getGroupUserIn, getUserPermissions, getAllPermissions } from '../../services/api/userApi';
+import { getUsersByUuid, updateUser, getGroupUserIn, getUserPermissions } from '../../services/api/userApi';
 import { addUserToGroup, removeUserFromGroup, searchGroup } from '../../services/api/groupApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAllGroups } from '../../services/api/groupApi';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { MaterialIcons } from '@expo/vector-icons';
+import { colors, colorVariations, textColors } from '../../theme/colors';
+import { addPermissions, removePermissions, getAllPermissions } from '../../services/api/permissionApi';
 
 
 interface UserUpdate {
@@ -65,10 +67,6 @@ interface Permission {
   name: string;
 }
 
-interface SearchGroupResult {
-  uuid: string;
-}
-
 
 
 type UpdateUserScreenRouteProp = RouteProp<UserManagementStackParamList, 'UpdateUser'>;
@@ -96,7 +94,7 @@ const UpdateUserScreen = () => {
 
   
   // Group state
-  const [userGroup, setUserGroup] = useState<Group | null>(null);
+  const [userGroups, setUserGroups] = useState<Group[]>([]);
   const [groupLoading, setGroupLoading] = useState(false);
   const [groupError, setGroupError] = useState<string | null>(null);
   
@@ -119,7 +117,7 @@ const UpdateUserScreen = () => {
 
 
   // Add state variable to store current permissions
-  const [currentPermissionsList, setCurrentPermissionsList] = useState<string[]>([]);
+  const [currentPermissionsList, setCurrentPermissionsList] = useState<Permission[]>([]);
 
   useEffect(() => {
     fetchUser();
@@ -176,28 +174,23 @@ const UpdateUserScreen = () => {
       if (result.error) {
         // 404 error means user is not in any group - this is a valid state
         if (result.error.status === 404) {
-          setUserGroup(null);
+          setUserGroups([]);
         } else {
           setGroupError(result.error.message);
         }
         return;
       }
       
-      if (result.data) {
-        // Handle the new API response format with groups array
-        if (result.data.groups && result.data.groups.length > 0) {
-          // Set the first group as userGroup for UI
-          const firstGroup = result.data.groups[0];
-          setUserGroup({
-            user_uuid: result.data.user_uuid,
-            group_uuid: firstGroup.group_uuid,
-            group_name: firstGroup.group_name
-          });
-        } else {
-          setUserGroup(null);
-        }
+      if (result && result.data && result.data.groups && result.data.user_uuid) {
+        // Map groups to the userGroups array
+        const groups = result.data.groups.map((group: any) => ({
+          user_uuid: result.data?.user_uuid as string,
+          group_uuid: group.group_uuid,
+          group_name: group.group_name
+        }));
+        setUserGroups(groups);
       } else {
-        setUserGroup(null);
+        setUserGroups([]);
       }
     } catch (error) {
       console.error('Error fetching user group:', error);
@@ -247,7 +240,7 @@ const UpdateUserScreen = () => {
     if (!selectedGroup || !userId) return;
     
     // Check if user is already in this group
-    if (userGroup && userGroup.group_uuid === selectedGroup.uuid) {
+    if (userGroups.some(g => g.group_uuid === selectedGroup.uuid)) {
       setSnackbarMessage('User is already in this group');
       setSnackbarVisible(true);
       return;
@@ -255,7 +248,7 @@ const UpdateUserScreen = () => {
     
     // Set up confirmation dialog
     setConfirmDialogTitle('Add to Group');
-    setConfirmDialogMessage(`Are you sure you want to add this user to the group? ${userGroup}`);
+    setConfirmDialogMessage(`Are you sure you want to add this user to the group? ${selectedGroup.name}`);
     setConfirmDialogAction(() => async () => {
       try {
         setSaving(true);
@@ -289,17 +282,15 @@ const UpdateUserScreen = () => {
   };
 
   // Add handleRemoveUserFromGroup back
-  const handleRemoveUserFromGroup = () => {
-    if (!userGroup) return;
-    
+  const handleRemoveUserFromGroup = (groupUuid: string, groupName: string) => {
     // Set up confirmation dialog
     setConfirmDialogTitle('Remove from Group');
-    setConfirmDialogMessage(`Are you sure you want to remove this user from the group "${userGroup.group_name}"?`);
+    setConfirmDialogMessage(`Are you sure you want to remove this user from the group "${groupName}"?`);
     setConfirmDialogAction(() => async () => {
       try {
         setSaving(true);
         
-        const result = await removeUserFromGroup(userGroup.group_uuid, userId);
+        const result = await removeUserFromGroup(groupUuid, userId);
         if (result.error) {
           setSnackbarMessage(result.error.message);
           setSnackbarVisible(true);
@@ -309,7 +300,6 @@ const UpdateUserScreen = () => {
         }
         
         // Refresh group data
-        setUserGroup(null);
         await fetchUserGroup(userId);
         await fetchAvailableGroups();
         
@@ -411,25 +401,25 @@ const UpdateUserScreen = () => {
     } else {
       setSnackbarMessage('Permission added successfully');
       setSnackbarVisible(true);
-      setCurrentPermissionsList(prev => [...prev, selectedPermission.name]);
+      setCurrentPermissionsList(prev => [...prev, selectedPermission]);
     }
   };
 
   // Remove permission
-  const handleRemovePermission = async (permission: string, user_uuid: string) => {
+  const handleRemovePermission = async (permission_uuid: string, user_uuid: string) => {
     // Set up confirmation dialog
     setConfirmDialogTitle('Remove Permission');
     setConfirmDialogMessage('Are you sure you want to remove this permission?');
     setConfirmDialogAction(() => async () => {
       // Check if permission is in the added list
-      const response = await removePermissions(permission, user_uuid);
+      const response = await removePermissions(permission_uuid, user_uuid);
       if (response.error) {
         setSnackbarMessage(response.error.message);
         setSnackbarVisible(true);
       } else {
         setSnackbarMessage('Permission removed successfully');
         setSnackbarVisible(true);
-        setCurrentPermissionsList(prev => prev.filter(p => p !== permission));
+        setCurrentPermissionsList(prev => prev.filter(p => p.uuid !== permission_uuid));
       }
       setConfirmDialogVisible(false);
     });
@@ -437,17 +427,29 @@ const UpdateUserScreen = () => {
   };
 
   // Get current permissions (original + added - removed)
-  const getCurrentPermissions = async (): Promise<string[]> => {
+  const getCurrentPermissions = async (): Promise<Permission[]> => {
     const response = await getUserPermissions(userId);
-    let originalPermissions: string[] = [];
+    let originalPermissions: Permission[] = [];
     
     if (response?.data) {
       // Handle the permissions array based on the API response format
-      originalPermissions = Array.isArray(response.data) 
-        ? response.data.map((p: {name: string}) => p.name) 
-        : (response.data.permissions || []);
+      if (Array.isArray(response.data)) {
+        originalPermissions = response.data.map((p: {uuid: string, name: string}) => ({ 
+          uuid: p.uuid, 
+          name: p.name 
+        }));
+      } else if (response.data.permissions) {
+        // Handle case where permissions might be strings or objects
+        originalPermissions = response.data.permissions.map((p: any) => {
+          if (typeof p === 'string') {
+            // This is just a fallback in case we get string permissions
+            return { uuid: p, name: p };
+          } else {
+            return { uuid: p.uuid, name: p.name };
+          }
+        });
+      }
     }
-    
     
     setCurrentPermissionsList(originalPermissions);
     
@@ -469,13 +471,13 @@ const UpdateUserScreen = () => {
   }, [userId]);
 
   // Get available permissions to add (those not already assigned)
-  const getAvailablePermissions = async (): Promise<Permission[]> => {
+  const getAvailablePermissions = async (): Promise<any> => {
     const result = await getAllPermissions();
     if (result.error) {
       setSnackbarMessage(result.error.message);
       setSnackbarVisible(true);
     }
-    return result.data?.permissions || [];
+    return result?.data || [];
   };
 
   // If loading, show loading indicator
@@ -630,31 +632,42 @@ const UpdateUserScreen = () => {
                 </Text>
               ) : (
                 <>
-                  {/* Current Group */}
-                  {userGroup ? (
+                  {/* Current Groups */}
+                  {userGroups.length > 0 ? (
                     <Card style={styles.currentGroupCard}>
                       <Card.Content>
-                        <View style={styles.groupItem}>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.subheading}>Current Group</Text>
-                            <Text>{userGroup.group_name}</Text>
-                          </View>
-                          <Button 
-                            mode="outlined" 
-                            icon="account-remove" 
-                            onPress={handleRemoveUserFromGroup}
-                            disabled={saving}
-                            style={{ marginLeft: 8 }}
-                          >
-                            Remove
-                          </Button>
+                        <Text style={styles.subheading}>Current Groups</Text>
+                        <View style={styles.groupsContainer}>
+                          {userGroups.map((group) => (
+                            <View key={group.group_uuid} style={styles.groupChipContainer}>
+                              <Chip 
+                                style={styles.groupChip}
+                                icon="account-group"
+                                selectedColor={colors.white}
+                                textStyle={styles.groupChipText}
+                              >
+                                {group.group_name}
+                              </Chip>
+                              <Button 
+                                mode="outlined" 
+                                icon="account-remove" 
+                                onPress={() => handleRemoveUserFromGroup(group.group_uuid, group.group_name)}
+                                disabled={saving}
+                                style={styles.removeGroupButton}
+                                color={colors.error}
+                                compact={true}
+                              >
+                                Remove
+                              </Button>
+                            </View>
+                          ))}
                         </View>
                       </Card.Content>
                     </Card>
                   ) : (
                     <Card style={styles.currentGroupCard}>
                       <Card.Content>
-                        <Text style={styles.subheading}>Current Group</Text>
+                        <Text style={styles.subheading}>Current Groups</Text>
                         <Text style={{ fontStyle: 'italic', opacity: 0.7 }}>
                           Not assigned to any group
                         </Text>
@@ -728,13 +741,16 @@ const UpdateUserScreen = () => {
                 <FlatList
                   horizontal
                   data={currentPermissionsList}
-                  keyExtractor={(item, index) => `${item}-${index}`}
+                  keyExtractor={(item, index) => `${item.uuid}-${index}`}
                   renderItem={({ item }) => (
                     <Chip
                       style={styles.permissionChip}
-                      onClose={() => handleRemovePermission(item, userId)}
-                      icon="key-variant" >
-                      {item}
+                      onClose={() => handleRemovePermission(item.uuid, userId)}
+                      icon="key-variant"
+                      selectedColor={colors.white}
+                      textStyle={styles.permissionChipText}
+                    >
+                      {item.name}
                     </Chip>
                   )}
                   showsHorizontalScrollIndicator={false}
@@ -871,12 +887,12 @@ const styles = StyleSheet.create({
     zIndex: 3000,
   },
   dropdown: {
-    backgroundColor: 'transparent',
-    borderColor: '#ccc',
+    backgroundColor: colors.white,
+    borderColor: colorVariations.backgroundDarker,
   },
   dropdownList: {
-    backgroundColor: 'white',
-    borderColor: '#ccc',
+    backgroundColor: colors.white,
+    borderColor: colorVariations.backgroundDarker,
   },
   switchContainer: {
     flexDirection: 'row',
@@ -906,6 +922,10 @@ const styles = StyleSheet.create({
   },
   permissionChip: {
     margin: 4,
+    backgroundColor: colorVariations.primaryLight,
+  },
+  permissionChipText: {
+    color: colors.white,
   },
   noPermissionsText: {
     fontStyle: 'italic',
@@ -934,39 +954,44 @@ const styles = StyleSheet.create({
   // Group styles
   currentGroupCard: {
     marginBottom: 12,
-  },
-  searchResultCard: {
-    marginTop: 12,
-    marginBottom: 12,
-    backgroundColor: '#f0f8ff',
+    padding: 4,
+    backgroundColor: colors.white,
   },
   groupItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  groupSearchContainer: {
+  groupsContainer: {
+    marginTop: 8,
+  },
+  groupChipContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    backgroundColor: colors.background,
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    elevation: 1,
   },
-  searchBar: {
-    flex: 1,
-    marginRight: 8,
-    height: 40,
+  groupChip: {
+    backgroundColor: colorVariations.secondaryLight,
   },
-  searchButton: {
-    height: 40,
-    justifyContent: 'center',
+  groupChipText: {
+    color: colors.white,
+    fontWeight: '500',
+  },
+  removeGroupButton: {
+    marginLeft: 12,
+    borderColor: colorVariations.secondaryLight,
   },
   centered: {
     alignItems: 'center',
     marginVertical: 16,
-  },
-  groupDropdownContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
   },
   card: {
     marginBottom: 12,

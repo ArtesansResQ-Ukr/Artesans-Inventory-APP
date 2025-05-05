@@ -58,11 +58,6 @@ interface ApiResponse<T> {
     error?: ApiError;
 }
 
-interface Group {
-    user_uuid: string;
-    group_uuid: string;
-    group_name: string;
-}
 
 // Add a new interface for the updated API response
 interface UserGroups {
@@ -208,35 +203,6 @@ export const getUserPermissions = async (user_uuid: string): Promise<ApiResponse
     }
 };
 
-export const addPermissions = async (permissions_uuid: string, user_uuid: string): Promise<ApiResponse<{message: string; user: User; permissions_uuid: string}>> => {
-    try {
-        const response = await apiClient.post(`/users/add_permissions?permissions_uuid=${permissions_uuid}&user_uuid=${user_uuid}`);
-        return { data: response.data };
-    } catch (error: any) {
-        console.error('Failed to add permissions:', error);
-        return { 
-            error: {
-                status: error?.response?.status || 500,
-                message: extractErrorMessage(error)
-            }
-        };
-    }
-};
-
-export const removePermissions = async (permissions_uuid: string, user_uuid: string): Promise<ApiResponse<{message: string; user: User; permissions_removed: any}>> => {
-    try {
-        const response = await apiClient.post(`/users/remove_permissions?permissions_uuid=${permissions_uuid}&user_uuid=${user_uuid}`);
-        return { data: response.data };
-    } catch (error: any) {
-        console.error('Failed to remove permissions:', error);
-        return { 
-            error: {
-                status: error?.response?.status || 500,
-                message: extractErrorMessage(error)
-            }
-        };
-    }
-};
 
 export const getGroupUserIn = async (uuid: string): Promise<ApiResponse<UserGroups>> => {
     try {
@@ -270,17 +236,3 @@ export const changeGroup = async (group_uuid: string): Promise<ApiResponse<{mess
       }
 }
 
-export const getAllPermissions = async (): Promise<ApiResponse<{permissions: Permission[]}>> => {
-    try {
-        const response = await apiClient.get('/users/view-all-permissions');
-        return { data: response.data.permissions };
-    } catch (error: any) {
-        console.error('Failed to get all permissions:', error);
-        return { 
-            error: {
-                status: error?.response?.status || 500,
-                message: extractErrorMessage(error)
-            }
-        };
-    }
-};

@@ -26,8 +26,10 @@ const LoginScreen: React.FC = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [forgotPasswordError, setForgotPasswordError] = useState<string | null>(null);
   const [tokenExpiredMessage, setTokenExpiredMessage] = useState<string | null>(null);
+  const [resetPasswordSuccess, setResetPasswordSuccess] = useState<string | null>(null);
 
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { login, requestNewPassword } = useAuth();
@@ -53,11 +55,12 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = async () => {
     if (!username || !password) {
-      Alert.alert('Error', 'Please enter both username and password');
+      setLoginError('Please enter both username and password');
       return;
     }
 
     setIsLoading(true);
+    setLoginError(null); // Clear any previous errors
     try {
       console.log('LoginScreen: Attempting login with username:', username);
       const success = await login(username, password);
@@ -76,14 +79,16 @@ const LoginScreen: React.FC = () => {
       console.error('LoginScreen: Login error:', error);
       if (error.response?.data?.detail) {
         if (error.response.data.detail === "Incorrect username") {
-          Alert.alert('Error', 'The username you entered does not exist');
+          setLoginError('The username you entered does not exist');
         } else if (error.response.data.detail === "Incorrect password") {
-          Alert.alert('Error', 'The password you entered is incorrect');
+          setLoginError('The password you entered is incorrect');
         } else {
-          Alert.alert('Error', error.response.data.detail);
+          setLoginError(error.response.data.detail);
         }
+      } else if (error.message === "Token expired or invalid") {
+        setLoginError('Your session has expired. Please sign in again.');
       } else {
-        Alert.alert('Error', 'An error occurred while logging in');
+        setLoginError('An error occurred while logging in');
       }
     } finally {
       setIsLoading(false);
@@ -92,29 +97,38 @@ const LoginScreen: React.FC = () => {
 
   const HandleNewPasswordRequest = async () => {
     if (!forgotPasswordEmail) {
-      Alert.alert('Error', 'Please enter your email address');
+      setForgotPasswordError('Please enter your email address');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(forgotPasswordEmail)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      setForgotPasswordError('Please enter a valid email address');
       return;
     }
 
     setIsLoading(true);
+    setForgotPasswordError(null);
     try {
       const success = await requestNewPassword(forgotPasswordEmail);
       
       if (success) {
-        Alert.alert('Success', 'Please check your email for your new password');
-        setShowForgotPassword(false);
+        setResetPasswordSuccess('Please check your email for your new password');
+        // Clear error after 5 seconds and return to login
+        setTimeout(() => {
+          setResetPasswordSuccess(null);
+          setShowForgotPassword(false);
+        }, 5000);
       } else {
-        Alert.alert('Error', 'Failed to send password reset email');
+        setForgotPasswordError('Failed to send password reset email');
       }
-    } catch (error) {
-      Alert.alert('Error', 'An error occurred while sending password reset email');
-      console.error(error);
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      if (error.response?.data?.detail) {
+        setForgotPasswordError(error.response.data.detail);
+      } else {
+        setForgotPasswordError('An error occurred while sending password reset email');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -127,6 +141,13 @@ const LoginScreen: React.FC = () => {
   const navigateToBiometricAuth = () => {
     navigation.navigate('BiometricAuth');
   };
+
+  // Clear errors when switching between login and forgot password
+  useEffect(() => {
+    setLoginError(null);
+    setForgotPasswordError(null);
+    setResetPasswordSuccess(null);
+  }, [showForgotPassword]);
 
   return (
     <KeyboardAvoidingView
@@ -148,6 +169,13 @@ const LoginScreen: React.FC = () => {
 
           {!showForgotPassword ? (
             <>
+              {loginError && (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle" size={20} color={colors.error} style={styles.errorIcon} />
+                  <Text style={styles.errorText}>{loginError}</Text>
+                </View>
+              )}
+              
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Username</Text>
                 <TextInput
@@ -170,6 +198,7 @@ const LoginScreen: React.FC = () => {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
+                  autoComplete='password'
                 />
               </View>
 
@@ -209,6 +238,20 @@ const LoginScreen: React.FC = () => {
             </>
           ) : (
             <>
+              {forgotPasswordError && (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle" size={20} color={colors.error} style={styles.errorIcon} />
+                  <Text style={styles.errorText}>{forgotPasswordError}</Text>
+                </View>
+              )}
+              
+              {resetPasswordSuccess && (
+                <View style={styles.successContainer}>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.success} style={styles.successIcon} />
+                  <Text style={styles.successText}>{resetPasswordSuccess}</Text>
+                </View>
+              )}
+
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email</Text>
                 <TextInput
@@ -377,6 +420,22 @@ const styles = StyleSheet.create({
   },
   backToLoginText: {
     color: colors.secondary,
+    fontSize: 14,
+  },
+  successContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e6f9e6',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  successIcon: {
+    marginRight: 8,
+  },
+  successText: {
+    flex: 1,
+    color: colors.success,
     fontSize: 14,
   },
 });

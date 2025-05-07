@@ -6,16 +6,19 @@ import { RootState } from '../store';
 import { useNavigation } from '@react-navigation/native';
 import { colors, textColors } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
-import { InventoryStackParamList } from '../navigation/types/navigation';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getProductUserHistory } from '../services/api/productApi';
+import { TabNavigatorParamList } from '../navigation/types/navigation';
+import { CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { getProductUserHistory } from '../services/api/productApi';
 
-
-type ProductListScreenNavigationProp = StackNavigationProp<InventoryStackParamList>;
+type HomeScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<TabNavigatorParamList, 'Home'>,
+  StackNavigationProp<TabNavigatorParamList>
+>;
 
 const HomeScreen = () => {
-  const navigation = useNavigation<ProductListScreenNavigationProp>();
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const { user } = useSelector((state: RootState) => state.auth);
   const [history, setHistory] = useState<any[]>([]);
 
@@ -43,62 +46,70 @@ const HomeScreen = () => {
       
       <Divider style={styles.divider} />
 
-      <Card style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Ionicons name="flash-outline" size={24} color={colors.white} />
-          <Text style={styles.cardHeaderText}>Quick Actions</Text>
-        </View>
-        <Card.Content style={styles.cardContent}>
-          <Button 
-            mode="contained" 
-            onPress={() => navigation.navigate('ProductTypeSelection')}
-            style={styles.button}
-            icon="barcode-scan"
-            buttonColor={colors.primary}
-          >
-            Scan Product
-          </Button>
-          
-          <Button 
-            mode="outlined" 
-            onPress={() => navigation.navigate('ProductList', { userId: user?.uuid || '' })}
-            style={styles.button}
-            icon="view-list"
-            textColor={colors.primary}
-          >
-            View Inventory
-          </Button>
-        </Card.Content>
-      </Card>
-
-      <Card style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Ionicons name="stats-chart-outline" size={24} color={colors.white} />
-          <Text style={styles.cardHeaderText}>Inventory Summary</Text>
-        </View>
-        <Card.Content style={styles.cardContent}>
-          <View style={styles.summaryItem}>
-            <Ionicons name="cube-outline" size={24} color={colors.primary} />
-            <Text style={styles.summaryText}>Your inventory overview will appear here.</Text>
+      <View style={styles.cardWrapper}>
+        <Card style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="flash-outline" size={24} color={colors.white} />
+            <Text style={styles.cardHeaderText}>Quick Actions</Text>
           </View>
-        </Card.Content>
-      </Card>
-
-      <Card style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Ionicons name="time-outline" size={24} color={colors.white} />
-          <Text style={styles.cardHeaderText}>Recent Activity</Text>
-        </View>
-        <Card.Content style={styles.cardContent}>
-          {history.map((item, index) => (
-            <View key={index} style={styles.activityItem}>
-              <View style={styles.activityDot} />
-              <Text style={styles.activityText}>{item.action}</Text>
-            </View>
-          ))}
+          <Card.Content style={styles.cardContent}>
+            <Button 
+              mode="contained" 
+              onPress={() => navigation.navigate('Inventory', { screen: 'Camera' })}
+              style={styles.button}
+              icon="barcode-scan"
+              buttonColor={colors.primary}
+            >
+              Scan Product
+            </Button>
             
-        </Card.Content>
-      </Card>
+            <Button 
+              mode="outlined" 
+              onPress={() => navigation.navigate('Inventory', { 
+                screen: 'ProductList',
+                params: {}
+              })}
+              style={styles.button}
+              icon="view-list"
+              textColor={colors.primary}
+            >
+              View Inventory
+            </Button>
+          </Card.Content>
+        </Card>
+      </View>
+
+      <View style={styles.cardWrapper}>
+        <Card style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="stats-chart-outline" size={24} color={colors.white} />
+            <Text style={styles.cardHeaderText}>Inventory Summary</Text>
+          </View>
+          <Card.Content style={styles.cardContent}>
+            <View style={styles.summaryItem}>
+              <Ionicons name="cube-outline" size={24} color={colors.primary} />
+              <Text style={styles.summaryText}>Your inventory overview will appear here.</Text>
+            </View>
+          </Card.Content>
+        </Card>
+      </View>
+
+      <View style={styles.cardWrapper}>
+        <Card style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="time-outline" size={24} color={colors.white} />
+            <Text style={styles.cardHeaderText}>Recent Activity</Text>
+          </View>
+          <Card.Content style={styles.cardContent}>
+            {history.map((item, index) => (
+              <View key={index} style={styles.activityItem}>
+                <View style={styles.activityDot} />
+                <Text style={styles.activityText}>{item.action}</Text>
+              </View>
+            ))}
+          </Card.Content>
+        </Card>
+      </View>
     </ScrollView>
   );
 };
@@ -131,10 +142,12 @@ const styles = StyleSheet.create({
     height: 1,
     marginBottom: 20,
   },
-  card: {
+  cardWrapper: {
     marginBottom: 20,
     borderRadius: 10,
     overflow: 'hidden',
+  },
+  card: {
     elevation: 4,
   },
   cardHeader: {

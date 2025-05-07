@@ -16,6 +16,14 @@ interface Product {
   ocr_text?: string;
 }
 
+interface ProductCreate {
+  name: string;
+  category?: string;
+  expiration_date: string;
+  quantity: number;
+  comments?: string;
+  ocr_text?: string;
+}
 
 /**
  * Sends OCR text to backend to convert to product structure
@@ -96,9 +104,31 @@ export const getProductMatchesGlobal = async (scannedProduct: Product) => {
  * @param product - The product to create
  * @returns Promise with created product
  */
-export const createProduct = async (product: Product) => {
+export const createProduct = async (product: ProductCreate) => {
   try {
     const response = await apiClient.post(`/products/new`, product);
+    return response.data.new_product;
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response) {
+      console.error('Failed to create product:', error);
+      const backend_message = error.response.data.detail || 'An unknown error occurred';
+      Alert.alert('Error', backend_message);
+      throw backend_message;
+    } else {
+      console.error('Failed to create product:', error);
+      throw new Error;
+    }
+  }
+};
+/**
+ * Creates a new product in the backend
+ * 
+ * @param product - The product to create
+ * @returns Promise with created product
+ */
+export const createProductWithDifferentDate = async (product_uuid: string, expiration_date: string, quantity: number) => {
+  try {
+    const response = await apiClient.post(`/products/${product_uuid}/create-new-date?expiration_date=${expiration_date}&quantity=${quantity}`);
     return response.data.new_product;
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response) {
@@ -324,7 +354,7 @@ export const getSpecificProductHistory = async (productUuid: string) => {
 export const getProductByUuid = async (productUuid: string) => {
   try {
     const response = await apiClient.get(`/products/view?product_uuid=${productUuid}`);
-    return response.data.product;
+    return response.data.products;
   } catch (error: unknown) {
     if (error instanceof AxiosError && error.response) {
       console.error('Failed to fetch product:', error);

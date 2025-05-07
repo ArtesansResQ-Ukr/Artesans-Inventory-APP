@@ -27,6 +27,12 @@ interface ApiResponse<T> {
     data?: T;
     error?: ApiError;
 }
+
+interface Role {
+    name: string;
+    permissions: string[];
+}
+
 // Helper function to extract error messages
 const extractErrorMessage = (error: any): string => {
     if (error?.response?.data?.detail) {
@@ -104,6 +110,36 @@ export const removeRole = async (role_name: string, user_uuid: string): Promise<
         return { data: response.data };
     } catch (error: any) {
         console.error('Failed to remove role:', error);
+        return { 
+            error: {
+                status: error?.response?.status || 500,
+                message: extractErrorMessage(error)
+            }
+        };
+    }
+}
+
+export const getAllRoles = async (): Promise<ApiResponse<{roles: Role[]}>> => {
+    try {
+        const response = await apiClient.get('/permissions/view-all-roles');
+        return { data: response.data };
+    } catch (error: any) {
+        console.error('Failed to get all roles:', error);
+        return { 
+            error: {
+                status: error?.response?.status || 500,
+                message: extractErrorMessage(error)
+            }
+        };
+    }
+}
+
+export const getUserRoles = async (user_uuid: string): Promise<ApiResponse<{message: string; role: string}>> => {
+    try {
+        const response = await apiClient.get(`/permissions/check-user-roles?user_uuid=${user_uuid}`);
+        return { data: response.data };
+    } catch (error: any) {
+        console.error('Failed to check user roles:', error);
         return { 
             error: {
                 status: error?.response?.status || 500,

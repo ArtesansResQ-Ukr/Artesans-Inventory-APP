@@ -70,17 +70,17 @@ const UserManagementScreen = () => {
           </View>
           <Card.Content style={styles.cardContent}>
             <Text style={styles.cardDescription}>
-              Define and assign roles with specific permissions to users.
+              Define roles with specific permissions.
             </Text>
           </Card.Content>
           <Card.Actions style={styles.cardActions}>
             <Button 
               mode="contained"
-              onPress={() => {}}
+              onPress={() => navigation.navigate('DefineRole')}
               style={styles.button}
-              disabled
+              buttonColor={colors.primary}
             >
-              Coming Soon
+              Role Reference
             </Button>
           </Card.Actions>
         </Card>

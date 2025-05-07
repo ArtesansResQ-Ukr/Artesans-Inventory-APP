@@ -30,6 +30,7 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, colorVariations, textColors } from '../../theme/colors';
 import { addPermissions, removePermissions, getAllPermissions } from '../../services/api/permissionApi';
+import { getUserRoles, getAllRoles, assignRole, removeRole } from '../../services/api/permissionApi';
 
 
 interface UserUpdate {
@@ -75,7 +76,6 @@ const UpdateUserScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<StackNavigationProp<UserManagementStackParamList>>();
   const route = useRoute<UpdateUserScreenRouteProp>();
-  const { user: currentUser } = useAuth();
   const { userId } = route.params;
   
   const [originalUser, setOriginalUser] = useState<User | null>(null);
@@ -119,8 +119,36 @@ const UpdateUserScreen = () => {
   // Add state variable to store current permissions
   const [currentPermissionsList, setCurrentPermissionsList] = useState<Permission[]>([]);
 
+  // New state variables for role management
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [availableRoles, setAvailableRoles] = useState<{name: string, permissions: string[]}[]>([]);
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [roleMenuVisible, setRoleMenuVisible] = useState(false);
+  const [roleLoading, setRoleLoading] = useState(false);
+
   useEffect(() => {
     fetchUser();
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchUserRole();
+      fetchAvailableRoles();
+    }
+  }, [userId]);
+
+   // Update permissions list when needed
+   useEffect(() => {
+    const updatePermissions = async () => {
+      const permissions = await getCurrentPermissions();
+      setCurrentPermissionsList(permissions);
+      
+      // Also fetch available permissions
+      const allPermissions = await getAvailablePermissions();
+      setAvailablePermissions(allPermissions);
+    };
+    
+    updatePermissions();
   }, [userId]);
 
   const fetchUser = async () => {
@@ -456,19 +484,6 @@ const UpdateUserScreen = () => {
     return originalPermissions;
   };
 
-  // Update permissions list when needed
-  useEffect(() => {
-    const updatePermissions = async () => {
-      const permissions = await getCurrentPermissions();
-      setCurrentPermissionsList(permissions);
-      
-      // Also fetch available permissions
-      const allPermissions = await getAvailablePermissions();
-      setAvailablePermissions(allPermissions);
-    };
-    
-    updatePermissions();
-  }, [userId]);
 
   // Get available permissions to add (those not already assigned)
   const getAvailablePermissions = async (): Promise<any> => {
@@ -478,6 +493,92 @@ const UpdateUserScreen = () => {
       setSnackbarVisible(true);
     }
     return result?.data || [];
+  };
+
+  const fetchUserRole = async () => {
+    try {
+      setRoleLoading(true);
+      const result = await getUserRoles(userId);
+      if (result.data) {
+        setCurrentUserRole(result.data.role);
+      }
+    } catch (error) {
+      console.error("Error fetching user role", error);
+    } finally {
+      setRoleLoading(false);
+    }
+  };
+
+  const fetchAvailableRoles = async () => {
+    try {
+      const result = await getAllRoles();
+      if (result.data) {
+        setAvailableRoles(result.data.roles);
+      }
+    } catch (error) {
+      console.error("Error fetching roles", error);
+    }
+  };
+
+  const handleAssignRole = (roleName: string) => {
+    setConfirmDialogTitle('Assign Role');
+    setConfirmDialogMessage(`Are you sure you want to assign the role "${roleName}" to this user?`);
+    setConfirmDialogAction(() => async () => {
+      try {
+        setSaving(true);
+        // Show specific loading for role assignment
+        setRoleLoading(true);
+        
+        const result = await assignRole(roleName, userId);
+        if (result.error) {
+          setSnackbarMessage(result.error.message);
+        } else {
+          setSnackbarMessage(`Role ${roleName} assigned successfully`);
+          // Refresh both the role and permissions
+          await fetchUserRole();
+          await getCurrentPermissions();
+        }
+      } catch (error) {
+        console.error("Error assigning role", error);
+      } finally {
+        setSaving(false);
+        setRoleLoading(false);
+        setConfirmDialogVisible(false);
+        setSnackbarVisible(true);
+      }
+    });
+    setConfirmDialogVisible(true);
+  };
+
+  const handleRemoveRole = () => {
+    if (!currentUserRole) return;
+    
+    setConfirmDialogTitle('Remove Role');
+    setConfirmDialogMessage(`Are you sure you want to remove the role "${currentUserRole}" from this user?`);
+    setConfirmDialogAction(() => async () => {
+      try {
+        setSaving(true);
+        setRoleLoading(true);
+        
+        const result = await removeRole(currentUserRole, userId);
+        if (result.error) {
+          setSnackbarMessage(result.error.message);
+        } else {
+          setSnackbarMessage(`Role removed successfully`);
+          // Refresh both role and permissions
+          await fetchUserRole();
+          await getCurrentPermissions();
+        }
+      } catch (error) {
+        console.error("Error removing role", error);
+      } finally {
+        setSaving(false);
+        setRoleLoading(false);
+        setConfirmDialogVisible(false);
+        setSnackbarVisible(true);
+      }
+    });
+    setConfirmDialogVisible(true);
   };
 
   // If loading, show loading indicator
@@ -600,20 +701,26 @@ const UpdateUserScreen = () => {
           
           <Text style={styles.dropdownLabel}>Language Preference</Text>
           <View style={styles.dropdownContainer}>
-            <DropDownPicker
-              open={openLanguage}
-              value={userData.language_preference || 'en'}
-              items={languages}
-              setOpen={setOpenLanguage}
-              setValue={(callback) => {
-                const value = callback(userData.language_preference || 'en');
-                updateField('language_preference', value);
-              }}
-              setItems={setLanguages}
-              style={styles.dropdown}
-              disabled={saving}
-              dropDownContainerStyle={styles.dropdownList}
-            />
+            <Menu
+              visible={openLanguage}
+              onDismiss={() => setOpenLanguage(false)}
+              anchor={
+                <Button
+                  mode="outlined"
+                  onPress={() => setOpenLanguage(true)}
+                  disabled={saving}
+                >
+                  {userData.language_preference || 'en'}
+                </Button>
+              }
+            >
+              {languages.map((language) => (
+                <Menu.Item key={language.value} title={language.label} onPress={() => {
+                  setOpenLanguage(false);
+                  updateField('language_preference', language.value);
+                }} />
+              ))}
+            </Menu>
           </View>
           
           {(
@@ -791,6 +898,93 @@ const UpdateUserScreen = () => {
         </View>
       </View>
     )}
+          
+          <View style={styles.roleSection}>
+            <Headline style={styles.sectionTitle}>Role</Headline>
+            <Divider style={styles.divider} />
+            
+            <Card style={styles.card}>
+              <Card.Content>
+                <Text style={styles.subheading}>Current Role</Text>
+                {roleLoading ? (
+                  <View style={styles.centered}>
+                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                    <Text style={{ marginTop: 8 }}>Updating role...</Text>
+                  </View>
+                ) : currentUserRole ? (
+                  <View style={styles.currentRoleContainer}>
+                    <Chip
+                      style={styles.roleChip}
+                      icon="shield-account"
+                      selectedColor={colors.white}
+                      textStyle={styles.roleChipText}
+                    >
+                      {currentUserRole}
+                    </Chip>
+                    <Button
+                      mode="outlined"
+                      icon="delete"
+                      onPress={handleRemoveRole}
+                      color={colors.error}
+                      disabled={saving || roleLoading}
+                    >
+                      Remove
+                    </Button>
+                  </View>
+                ) : (
+                  <Text style={{ fontStyle: 'italic', opacity: 0.7 }}>
+                    No role assigned
+                  </Text>
+                )}
+              </Card.Content>
+            </Card>
+            
+            <Card style={styles.card}>
+              <Card.Title title="Assign Role" />
+              <Card.Content>
+                <Menu
+                  visible={roleMenuVisible}
+                  onDismiss={() => setRoleMenuVisible(false)}
+                  anchor={
+                    <TouchableOpacity
+                      style={styles.dropdownButton}
+                      onPress={() => {
+                        fetchAvailableRoles();
+                        setRoleMenuVisible(true);
+                      }}
+                      disabled={roleLoading}
+                    >
+                      <Text style={styles.dropdownButtonText}>
+                        {selectedRole || 'Select a role'}
+                      </Text>
+                      <MaterialIcons name="arrow-drop-down" size={24} color={roleLoading ? "#999" : "#000"} />
+                    </TouchableOpacity>
+                  }
+                >
+                  {Object.keys(availableRoles).map((roleName) => (
+                    <Menu.Item
+                      key={roleName}
+                      onPress={() => {
+                        setSelectedRole(roleName);
+                        setRoleMenuVisible(false);
+                      }}
+                      title={roleName}
+                    />
+                  ))}
+                </Menu>
+
+                <Button
+                  mode="contained"
+                  onPress={() => selectedRole && handleAssignRole(selectedRole)}
+                  disabled={!selectedRole || (selectedRole === currentUserRole) || saving || roleLoading}
+                  style={styles.actionButton}
+                  loading={roleLoading}
+                >
+                  Assign Role
+                </Button>
+              </Card.Content>
+            </Card>
+          </View>
           
           <View style={styles.buttonContainer}>
             <Button
@@ -1006,6 +1200,20 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     marginTop: 8,
+  },
+  roleSection: {
+    marginTop: 8,
+  },
+  currentRoleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  roleChip: {
+    backgroundColor: colorVariations.primaryLight,
+  },
+  roleChipText: {
+    color: colors.white,
   },
 });
 

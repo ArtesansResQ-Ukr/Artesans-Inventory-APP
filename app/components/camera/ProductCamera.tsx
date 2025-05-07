@@ -118,7 +118,7 @@ export const ProductCamera = ({ navigation, onTextDetected, onCapture }: Product
   return (
     <View style={styles.container}>
       <CameraView style={styles.camera} ref={cameraRef} facing={facing}>
-        <View style={styles.buttonContainer}>
+        <View style={styles.overlay}>
           {loading ? (
             <ActivityIndicator size="large" color="#fff" />
           ) : (
@@ -139,12 +139,15 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
-  buttonContainer: {
-    flex: 1,
+  overlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: 'transparent',
     flexDirection: 'row',
     justifyContent: 'center',
-    margin: 20,
+    padding: 20,
   },
   button: {
     alignSelf: 'flex-end',

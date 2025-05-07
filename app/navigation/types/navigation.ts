@@ -48,6 +48,7 @@ export type UserManagementStackParamList = {
     groupId: string;
     groupName: string;
   };
+  DefineRole: undefined;
 };
 
 export type AccountStackParamList = {

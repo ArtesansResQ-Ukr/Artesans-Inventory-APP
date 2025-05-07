@@ -28,7 +28,7 @@ interface User {
   active?: boolean;
   password?: string;
   language_preference?: string;
-  roles?: string[];
+  role?: string;
   permissions?: string[];
   group_uuid?: string;
 }
@@ -174,7 +174,8 @@ const ProfileScreen = () => {
   const fetchProductName = async (productUuid: string) => {
     try {
       const result = await getProductByUuid(productUuid);
-      return result.data.name;
+      console.log(result);
+      return result.name;
     } catch (error) {
       console.error('Error fetching product name:', error);
       return 'Unknown';
@@ -313,15 +314,6 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      {isVisible && (
-        <Banner
-          visible={true}
-          icon="information"
-          actions={[{ label: 'Dismiss', onPress: () => setIsVisible(false) }]}
-        >
-          You only have permission to view this profile. Update functionality is limited to your own profile or users you manage.
-        </Banner>
-      )}
       
       <ScrollView style={styles.scrollView}>
         <View style={styles.headerContainer}>
@@ -382,6 +374,12 @@ const ProfileScreen = () => {
                       : 'Not assigned to any group'
               }
               left={props => <List.Icon {...props} icon="account-group" />}
+            />
+            <Divider />
+            <List.Item
+              title="Role"
+              description={user.role || 'Not set'}
+              left={props => <List.Icon {...props} icon="account-tie-outline" />}
             />
           </Card.Content>
         </Card>

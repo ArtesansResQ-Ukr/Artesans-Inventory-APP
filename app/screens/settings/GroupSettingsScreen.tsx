@@ -181,12 +181,14 @@ const GroupSettingsScreen = () => {
               <Title style={styles.cardTitle}>Current Group</Title>
             </View>
             {currentGroup ? (
-              <Surface style={styles.currentGroupSurface}>
-                <Text style={styles.currentGroupName}>
-                  {userGroups?.groups.find(g => g.group_uuid === currentGroup)?.group_name || 'Unknown Group'}
-                </Text>
-                <Avatar.Icon size={24} icon="check" style={styles.currentGroupIcon} />
-              </Surface>
+              <View style={styles.surfaceWrapper}>
+                <Surface style={styles.currentGroupSurface}>
+                  <Text style={styles.currentGroupName}>
+                    {userGroups?.groups.find(g => g.group_uuid === currentGroup)?.group_name || 'Unknown Group'}
+                  </Text>
+                  <Avatar.Icon size={24} icon="check" style={styles.currentGroupIcon} />
+                </Surface>
+              </View>
             ) : (
               <Paragraph style={styles.noGroupText}>You are not currently assigned to any group</Paragraph>
             )}
@@ -248,10 +250,12 @@ const GroupSettingsScreen = () => {
       
       {changingGroup && (
         <View style={styles.loadingOverlay}>
-          <Surface style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>Changing group...</Text>
-          </Surface>
+          <View style={styles.surfaceWrapper}>
+            <Surface style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={styles.loadingText}>Changing group...</Text>
+            </Surface>
+          </View>
         </View>
       )}
     </View>
@@ -287,9 +291,12 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     fontSize: 20,
   },
+  surfaceWrapper: {
+    overflow: 'hidden',
+    borderRadius: 8,
+  },
   currentGroupSurface: {
     padding: 16,
-    borderRadius: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -337,7 +344,6 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     padding: 24,
-    borderRadius: 8,
     elevation: 5,
   },
   loadingText: {

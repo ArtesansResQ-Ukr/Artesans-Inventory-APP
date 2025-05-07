@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Text, Button, Card, ActivityIndicator, TextInput } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
-import { convertOcrToProduct, getProductMatches, increaseProductQuantity, decreaseProductQuantity, getProductMatchesGlobal, getProductQuantityInAllGroups } from '../../services/api/productApi';
+import { convertOcrToProduct, getProductMatches, increaseProductQuantity, decreaseProductQuantity, getProductMatchesGlobal, getProductQuantityInAllGroups, createProductWithDifferentDate } from '../../services/api/productApi';
 import { setLoading, resetOcr } from '../../store/slices/ocrSlice';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -46,6 +47,7 @@ const ExistingProductMatchScreen = () => {
   const [convertingOcr, setConvertingOcr] = useState(true);
   const [isGlobalSearching, setIsGlobalSearching] = useState(false);
   const [groupSpecificQuantities, setGroupSpecificQuantities] = useState<ProductGroupLink[]>([]);
+  const [isEditingProduct, setIsEditingProduct] = useState(false);
   // Process OCR text when component mounts
   useEffect(() => {
     const convertOcr = async () => {
@@ -63,6 +65,8 @@ const ExistingProductMatchScreen = () => {
           }
           
           setConvertedProduct(extractedProduct);
+          // Initial search when product is first converted
+          findMatches();
           
         } catch (error) {
           console.error('Error processing OCR for existing product:', error);
@@ -75,61 +79,58 @@ const ExistingProductMatchScreen = () => {
     
     convertOcr();
   }, [ocrResults]);
-  
-  // Log when convertedProduct changes
+
   useEffect(() => {
-    console.log('Converted Product (updated):', convertedProduct);
-    
-    const findMatches = async () => {
-      if (convertedProduct) {
-        try {
-          setProcessing(true);
-          
-          // Use the converted product for matching
-          const matches = await getProductMatches(convertedProduct);
-          
-          console.log('is new product:', matches.is_new_product);
-          if (matches.is_new_product) {
-            setIsNewProduct(true);
-          } else {
-            setIsNewProduct(false);
-            setMatchingProducts(matches.matched_products);
-            setMatchedUuids(matches.matched_uuids);
-            handleGetGroupSpecificQuantities();
-          }
-          
-        } catch (error) {
-          console.error('Error finding matches for existing product:', error);
-          alert('Error processing image data. Please try again.');
-        } finally {
-          setProcessing(false);
-        }
-      }
-    };
-    
     findMatches();
-  }, [convertedProduct]);
+  }, [ocrResults, convertedProduct]);
+  
+  const findMatches = async () => {
+    if (convertedProduct && !isEditingProduct) {
+      try {
+        setProcessing(true);
+        
+        // Use the converted product for matching
+        const matches = await getProductMatches(convertedProduct);
+        
+        console.log('is new product:', matches.is_new_product);
+        if (matches.is_new_product) {
+          setIsNewProduct(true);
+        } else {
+          setIsNewProduct(false);
+          setMatchingProducts(matches.matched_products);
+          setMatchedUuids(matches.matched_uuids);
+          handleGetGroupSpecificQuantities();
+        }
+        
+      } catch (error) {
+        console.error('Error finding matches for existing product:', error);
+        alert('Error processing image data. Please try again.');
+      } finally {
+        setProcessing(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    handleGetGroupSpecificQuantities();
+    console.log("groupSpecificQuantities after update:", groupSpecificQuantities);
+  }, [selectedProduct]);
 
   const handleGetGroupSpecificQuantities = async () => {
-    if (!matched_uuids) {
+    if (!selectedProduct) {
       return;
     }
-    const groupSpecificQuantities: ProductGroupLink[] = [];
-    for (const uuid of matched_uuids) {
-      const groupQuantities = await getProductQuantityInAllGroups(uuid);
-      if (groupQuantities && groupQuantities.length > 0) {
-        // Update product with group quantities
-        const groupQuantitiesWithNames = await Promise.all(groupQuantities.map(async (group: any) => {
-          const groupData = await getGroupByUuid(group.group_uuid);
-          return {
-            ...group,
-            group_name: groupData.data?.name || 'Unknown Group'
-          };
-        }));
-        groupSpecificQuantities.push(...groupQuantitiesWithNames);
-      }
+    if (selectedProduct) {
+      const groupQuantities = await getProductQuantityInAllGroups(selectedProduct.uuid);
+      const groupQuantitiesWithNames = await Promise.all(groupQuantities.map(async (group: any) => {
+        const groupData = await getGroupByUuid(group.group_uuid);
+        return {
+          ...group,
+          group_name: groupData.data?.name || 'Unknown Group'
+        };
+      }));
+      setGroupSpecificQuantities(groupQuantitiesWithNames);
     }
-    setGroupSpecificQuantities(groupSpecificQuantities);
   };
 
   const handleProductSelect = (product: Product) => {
@@ -206,6 +207,35 @@ const ExistingProductMatchScreen = () => {
     }
   };
 
+  const handleCreateProductWithDifferentDate = async () => {
+    if (!selectedProduct) {
+      alert('Please select a product first');
+      return;
+    }
+    if (!convertedProduct?.expiration_date) {
+      alert('Please enter an expiration date');
+      return;
+    }
+    const quantityNum = parseInt(quantity, 10);
+    if (isNaN(quantityNum) || quantityNum <= 0) {
+      alert('Please enter a valid quantity');
+      return;
+    }
+    try {
+      dispatch(setLoading(true));
+      const newProduct = await createProductWithDifferentDate(selectedProduct.uuid, convertedProduct?.expiration_date, quantityNum);
+      console.log('New product:', newProduct);
+      alert(quantityNum + ' ' + selectedProduct.name + ' created with new expieration date' + convertedProduct?.expiration_date);
+      dispatch(resetOcr());
+      navigation.navigate('Camera');
+    } catch (error) {
+      console.error('Error creating product with different date:', error);
+      alert('Failed to create product with new expieration date. Please try again.');
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }
+
   useEffect(() => {
     console.log("matchingProducts after update:", matchingProducts);
   }, [matchingProducts]);
@@ -258,6 +288,8 @@ const ExistingProductMatchScreen = () => {
         onChangeText={(text) => 
           setConvertedProduct(prev => prev ? {...prev, name: text} : null)
         }
+        onFocus={() => setIsEditingProduct(true)}
+        onBlur={() => setIsEditingProduct(false)}
         style={styles.input}
       />
       
@@ -267,6 +299,8 @@ const ExistingProductMatchScreen = () => {
         onChangeText={(text) => 
           setConvertedProduct(prev => prev ? {...prev, category: text} : null)
         }
+        onFocus={() => setIsEditingProduct(true)}
+        onBlur={() => setIsEditingProduct(false)}
         style={styles.input}
       />
       
@@ -276,6 +310,8 @@ const ExistingProductMatchScreen = () => {
         onChangeText={(text) => 
           setConvertedProduct(prev => prev ? {...prev, expiration_date: text} : null)
         }
+        onFocus={() => setIsEditingProduct(true)}
+        onBlur={() => setIsEditingProduct(false)}
         style={styles.input}
       />
       
@@ -317,6 +353,17 @@ const ExistingProductMatchScreen = () => {
             <Text>Comments: {convertedProduct.comments}</Text>
           </Card.Content>
           <Card.Actions>
+          <Button
+              mode="contained"
+              onPress={findMatches}
+              style={styles.searchButton}
+            >
+              Search Local Database
+            </Button>
+          </Card.Actions>
+          
+          <Card.Actions>
+            
             <Button
               mode="contained"
               onPress={handleGlobalSearch}
@@ -347,25 +394,35 @@ const ExistingProductMatchScreen = () => {
                 <Text>Current Total Quantity: {product.quantity}</Text>
                 <Text>Expiration: {product.expiration_date}</Text>
                 <Text>Comments: {product.comments}</Text>
+                {selectedProduct?.uuid === product.uuid && (
+                <>
                 <Text style={styles.groupQuantitiesTitle}>Group Quantities:</Text>
-                {groupSpecificQuantities.length > 0 ? (
-                  <View style={styles.groupQuantitiesList}>
-                    {groupSpecificQuantities.map((item, idx) => (
-                      <View key={idx} style={styles.groupQuantityItem}>
-                        <Text style={styles.groupName}>• {item.group_name || 'Unknown Group'}</Text>
-                        <Text style={styles.groupQuantity}>{item.quantity}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={styles.noGroupsText}>No group-specific quantities available</Text>
-                )}
-              </Card.Content>
+                  {groupSpecificQuantities.length > 0 ? (
+                <View style={styles.groupQuantitiesList}>
+                          {groupSpecificQuantities.map((item) => (
+                          <View
+                              key={`${item.product_uuid}-${item.group_uuid}`}
+                              style={styles.groupQuantityItem}
+                          >
+                      <Text style={styles.groupName}>
+                          • {item.group_name || 'Unknown Group'}
+                     </Text>
+                    <Text style={styles.groupQuantity}>{item.quantity}</Text>
+                </View>
+              ))}
+              </View>
+            ) : (
+          <Text style={styles.noGroupsText}>No group-specific quantities available</Text>
+        )}
+        </>
+      )}
+      </Card.Content>
             </Card>
           </TouchableOpacity>
         ))
       )}
       
+      <KeyboardAwareScrollView>
       {selectedProduct && (
         <View style={styles.updateSection}>
           <Text style={styles.sectionTitle}>Update Quantity:</Text>
@@ -403,6 +460,14 @@ const ExistingProductMatchScreen = () => {
           >
             {actionType === 'add' ? 'Add to Inventory' : 'Remove from Inventory'}
           </Button>
+
+          <Button
+            mode="contained"
+            onPress={handleCreateProductWithDifferentDate}
+            style={styles.updateButton}
+          >
+            Create Product with New Expiration Date
+          </Button>
         </View>
       )}
       
@@ -413,6 +478,7 @@ const ExistingProductMatchScreen = () => {
       >
         Retake Photo
       </Button>
+      </KeyboardAwareScrollView>
     </ScrollView>
   );
 };
@@ -501,9 +567,13 @@ const styles = StyleSheet.create({
     marginTop: 24,
     color: textColors.primary,
   },
+  searchButton: {
+    width: '100%',
+    marginBottom: 8,
+    color: textColors.primary,
+  },
   globalSearchButton: {
     width: '100%',
-    marginTop: 8,
     color: textColors.primary,
   },
   groupQuantitiesTitle: {

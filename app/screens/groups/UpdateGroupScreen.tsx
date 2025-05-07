@@ -7,8 +7,7 @@ import { UserManagementStackParamList } from '../../navigation/types/navigation'
 import { 
   getAllUsersInGroup, 
   removeUserFromGroup, 
-  addUserToGroup,
-  getRolesInGroup
+  addUserToGroup
 } from '../../services/api/groupApi';
 import { searchUsers } from '../../services/api/userApi';
 type UpdateGroupNavigationProp = StackNavigationProp<UserManagementStackParamList, 'UpdateGroup'>;
@@ -21,11 +20,6 @@ interface User {
   last_name: string;
 }
 
-interface Role {
-  uuid: string;
-  name: string;
-  permissions: string[];
-}
 
 const UpdateGroupScreen = () => {
   const navigation = useNavigation<UpdateGroupNavigationProp>();
@@ -33,7 +27,6 @@ const UpdateGroupScreen = () => {
   const { groupId, groupName } = route.params;
 
   const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newUserUuid, setNewUserUuid] = useState('');
@@ -63,28 +56,13 @@ const UpdateGroupScreen = () => {
           setError(usersResponse.error.message);
         }
       }
-
-      // Fetch roles in group
-      const rolesResponse = await getRolesInGroup(groupId);
-      if (rolesResponse.data) {
-        setRoles(rolesResponse.data.roles);
-      } else if (rolesResponse.error && rolesResponse.error.status !== 404) {
-        // Ignore 404 errors for roles (might not have any)
-        if (rolesResponse.error.status === 403 && !permissionError) {
-          setPermissionError(true);
-        } else if (rolesResponse.error.status !== 404) {
-          setError(rolesResponse.error.message);
-        }
-      }
     } catch (error) {
       console.error('Error fetching group data:', error);
-      setError('Failed to load group data. Please try again.');
+      setError('Failed to fetch group data');
     } finally {
       setLoading(false);
     }
   };
-
-  
 
   const handleRemoveUser = async (userId: string) => {
     try {
@@ -183,15 +161,6 @@ const UpdateGroupScreen = () => {
     </Card>
   );
 
-  const renderRoleItem = ({ item }: { item: Role }) => (
-    <Chip
-      style={styles.roleChip}
-      onClose={() => {}}
-      disabled
-    >
-      {item.name}
-    </Chip>
-  );
 
   if (permissionError) {
     return (
@@ -283,38 +252,7 @@ const UpdateGroupScreen = () => {
           </View>
         </Card.Content>
       </Card>
-
-      <Card style={styles.sectionCard}>
-        <Card.Title title="Group Roles" titleStyle={styles.sectionTitle} />
-        <Card.Content>
-          {roles.length === 0 ? (
-            <Text style={styles.emptyText}>No roles defined for this group</Text>
-          ) : (
-            <View style={styles.rolesContainer}>
-              {roles.map(role => (
-                <Chip
-                  key={role.uuid}
-                  style={styles.roleChip}
-                  onClose={() => {}}
-                  disabled
-                >
-                  {role.name}
-                </Chip>
-              ))}
-            </View>
-          )}
-          
-          <Button 
-            mode="contained" 
-            onPress={() => {}} 
-            style={styles.addButton}
-            disabled
-          >
-            Manage Roles (Coming Soon)
-          </Button>
-        </Card.Content>
-      </Card>
-
+        
       <Button 
         mode="outlined" 
         onPress={() => navigation.goBack()} 

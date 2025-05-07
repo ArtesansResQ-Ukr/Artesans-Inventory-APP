@@ -33,6 +33,7 @@ import UpdateGroupScreen from '../screens/groups/UpdateGroupScreen';
 import ChangePasswordScreen from '../screens/settings/ChangePasswordScreen';
 import CreateGroupScreen from '../screens/groups/CreateGroupScreen';
 import GroupSettingsScreen from '../screens/settings/GroupSettingsScreen';
+import DefineRoleScreen from '../screens/groups/DefineRoleScreen';
 
 // Create stack navigators for each tab
 const HomeStack = createStackNavigator<HomeStackParamList>();
@@ -143,6 +144,11 @@ const UserManagementStackScreen = () => (
       name="UpdateGroup" 
       component={UpdateGroupScreen}
       options={{ title: 'Update Group' }}
+    />
+    <UserManagementStack.Screen 
+      name="DefineRole" 
+      component={DefineRoleScreen}
+      options={{ title: 'Define Role' }}
     />
   </UserManagementStack.Navigator>
 );

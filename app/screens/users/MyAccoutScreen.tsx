@@ -22,7 +22,7 @@ interface User {
     active?: boolean;
     password?: string;
     language_preference?: string;
-    roles?: string[];
+    roles?: string;
     groups?: string[];
     permissions?: string[];
     sub?: string;

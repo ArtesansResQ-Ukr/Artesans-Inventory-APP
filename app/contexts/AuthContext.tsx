@@ -40,7 +40,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<boolean>;
   requestNewPassword: (email: string) => Promise<boolean>;
-  changePassword: (old_password: string, new_password: string, confirm_new_password: string) => Promise<boolean>;
+  changePassword: (old_password: string, new_password: string, confirm_password: string) => Promise<boolean>;
   requestOTP: (email: string) => Promise<boolean>;
   verifyOTP: (email: string, otp: string) => Promise<boolean>;
   enableBiometricLogin: (enable: boolean) => Promise<boolean>;
@@ -515,13 +515,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const changePassword = async (
     old_password: string,
     new_password: string,
-    confirm_new_password: string
+    confirm_password: string
   ): Promise<boolean> => {
     try {
       const response = await apiClient.post('/auth/password-change', {
         old_password,
         new_password,
-        confirm_new_password});
+        confirm_password},{headers: {
+            'Content-Type': 'application/json',
+          },
+        });
   
       console.log('Password changed successfully', response.data);
       return true;

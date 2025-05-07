@@ -12,7 +12,7 @@ interface User {
     arq_id: string;
     active: boolean;
     language_preference: string;
-    roles?: string[];
+    role?: string;
     groups?: string[];
     permissions?: string[];
     sub?: string;
@@ -28,7 +28,7 @@ interface UserUpdate {
     arq_id?: string;
     active?: boolean;
     groups?: string[];
-    roles?: string[];
+    roles?: string;
     permissions?: string[];
 }
 

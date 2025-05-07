@@ -147,21 +147,23 @@ const ProductDetailScreen = () => {
   useEffect(() => {
     const fetchProductHistory = async () => {
       if (!productUuid) return;
-      
+      setHistoryLoading(true);
       try {
-        setHistoryLoading(true);
         const historyData = await getSpecificProductHistory(productUuid);
+      
         const sortedHistory = [...historyData].sort((a, b) => {
           return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
         });
         setHistory(sortedHistory);
+        setHistoryLoading(false);
       } catch (error) {
         console.error('Error fetching product history:', error);
+        setHistory([]);
       } finally {
         setHistoryLoading(false);
       }
+      
     };
-
     fetchProductHistory();
   }, [productUuid]);
 

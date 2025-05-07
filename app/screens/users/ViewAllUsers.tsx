@@ -24,6 +24,7 @@ import { UserManagementStackParamList } from '../../navigation/types/navigation'
 import { getAllUsers, getActiveUsers, getGroupUserIn } from '../../services/api/userApi';
 import { getAllGroups } from '../../services/api/groupApi';
 import { colors } from '../../theme';
+import { normalize } from '../../services/api/searchApi';
 
 // Define user interface
 interface User {
@@ -113,12 +114,12 @@ const ViewAllUsers = () => {
 
   // Filter users based on search query
   const filteredUsers = useMemo(() => {
-    const searchLower = searchQuery.toLowerCase();
+    const searchNormalized = normalize(searchQuery);
     return users.filter(user =>
-      (user.first_name?.toLowerCase().includes(searchLower) ||
-      user.last_name?.toLowerCase().includes(searchLower) ||
-      user.username?.toLowerCase().includes(searchLower) ||
-      user.email?.toLowerCase().includes(searchLower))
+      (normalize(user.first_name || '').includes(searchNormalized) ||
+      normalize(user.last_name || '').includes(searchNormalized) ||
+      normalize(user.username || '').includes(searchNormalized) ||
+      normalize(user.email || '').includes(searchNormalized))
     );
   }, [users, searchQuery]);
 

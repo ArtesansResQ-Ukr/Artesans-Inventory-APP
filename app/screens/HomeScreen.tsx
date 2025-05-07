@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, FlatList } from 'react-native';
 import { Text, Button, Card, Divider } from 'react-native-paper';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { useNavigation } from '@react-navigation/native';
 import { colors, textColors } from '../theme';
@@ -11,6 +11,7 @@ import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { getProductUserHistory } from '../services/api/productApi';
+import { setIsNewProduct } from '../store/slices/ocrSlice';
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabNavigatorParamList, 'Home'>,
@@ -18,9 +19,20 @@ type HomeScreenNavigationProp = CompositeNavigationProp<
 >;
 
 const HomeScreen = () => {
+  const dispatch = useDispatch();
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { user } = useSelector((state: RootState) => state.auth);
   const [history, setHistory] = useState<any[]>([]);
+
+  const handleNewProduct = () => {
+    dispatch(setIsNewProduct(true));
+    navigation.navigate('Inventory', { screen: 'Camera' });
+  };
+
+  const handleExistingProduct = () => {
+    dispatch(setIsNewProduct(false));
+    navigation.navigate('Inventory', { screen: 'Camera' });
+  };
 
   const fetchHistory = async () => {
     const history = await getProductUserHistory();
@@ -55,12 +67,12 @@ const HomeScreen = () => {
           <Card.Content style={styles.cardContent}>
             <Button 
               mode="contained" 
-              onPress={() => navigation.navigate('Inventory', { screen: 'Camera' })}
+              onPress={handleExistingProduct}
               style={styles.button}
               icon="barcode-scan"
               buttonColor={colors.primary}
             >
-              Scan Product
+              Scan Existing Product
             </Button>
             
             <Button 
@@ -181,18 +193,20 @@ const styles = StyleSheet.create({
   },
   activityItem: {
     flexDirection: 'row', 
-    alignItems: 'center',
     marginBottom: 12,
+    paddingHorizontal: 12,
   },
   activityDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: colors.primary,
-    marginRight: 12,
+    marginRight: 8,
   },
   activityText: {
     color: textColors.primary,
+    flex: 1,
+    flexWrap: 'wrap',
   },
 });
 

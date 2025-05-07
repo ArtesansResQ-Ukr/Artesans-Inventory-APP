@@ -202,10 +202,10 @@ const ProfileScreen = () => {
         const sortedHistory = [...result].sort((a, b) => {
           return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
         });
-        const historyWithProductName = await Promise.all(sortedHistory.map(async (item) => ({
-          ...item,
-          product_name: await fetchProductName(item.product_uuid)
-        })));
+          const historyWithProductName = await Promise.all(sortedHistory.map(async (item) => ({
+            ...item,
+            product_name: item.product_name || await fetchProductName(item.product_uuid)
+          })));
         
         setUserHistory(historyWithProductName);
         

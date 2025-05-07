@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { InventoryStackParamList } from '../../navigation/types/navigation';
 import { colors, textColors } from '../../theme';
-
+import { fuzzySearch } from '../../services/api/searchApi';
 type ProductListScreenNavigationProp = StackNavigationProp<InventoryStackParamList>;
 
 const ProductListScreen = () => {
@@ -77,26 +77,27 @@ const ProductListScreen = () => {
   // Handle search query changes
   const onChangeSearch = (query: string) => {
     setSearchQuery(query);
-    
-    if (query.trim() === '') {
-      // If search is cleared, show all products or just the selected group
+
+    if (query === '') {
+      // Reset to original filtered by group
       if (selectedGroup) {
-        setFilteredProducts(products.filter(p => p.group_uuid === selectedGroup));
-      } else {
-        setFilteredProducts(products);
-      }
+      setFilteredProducts(products.filter(p => p.group_uuid === selectedGroup));
     } else {
+      setFilteredProducts(products);
+    }
+    return;
+  } else {
       // Filter products by name, category, or OCR text
-      const filtered = products.filter(product => {
-        const matchesSearch = 
-          product.name.toLowerCase().includes(query.toLowerCase()) ||
-          product.category.toLowerCase().includes(query.toLowerCase()) ||
-          (product.ocr_text && product.ocr_text.toLowerCase().includes(query.toLowerCase()));
-        
-        // Apply group filter if selected
-        return matchesSearch && (!selectedGroup || product.group_uuid === selectedGroup);
+      const matched = fuzzySearch({
+        list: products,
+        keys: ['name', 'ocr_text', 'category'],
+        query,
       });
-      
+    
+      const filtered = selectedGroup
+        ? matched.filter(p => p.group_uuid === selectedGroup)
+        : matched;
+    
       setFilteredProducts(filtered);
     }
   };

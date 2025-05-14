@@ -63,31 +63,6 @@ sequenceDiagram
     App->>App: Navigate to main app
 ```
 
-### JWT Token Handling
-
-```typescript
-// services/auth/tokenService.js
-import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const TOKEN_KEY = 'storage_api_token';
-
-// Use SecureStore on native platforms, AsyncStorage for web
-const storage = Platform.OS === 'web' ? AsyncStorage : SecureStore;
-
-export const storeToken = async (token) => {
-  await storage.setItem(TOKEN_KEY, token);
-};
-
-export const getToken = async () => {
-  return await storage.getItem(TOKEN_KEY);
-};
-
-export const removeToken = async () => {
-  await storage.removeItem(TOKEN_KEY);
-};
-```
 
 ## OCR and Product Matching Integration
 
@@ -149,69 +124,6 @@ Start[Start] --> A[User Selects: New or Existing Product]
 
 The application integrates Google Cloud Vision API directly in the frontend:
 
-```typescript
-// services/vision/visionService.ts
-import axios from 'axios';
-import { GOOGLE_CLOUD_VISION_API_KEY } from '@env';
-
-// Base URL for Google Cloud Vision API
-const VISION_API_URL = 'https://vision.googleapis.com/v1/images:annotate';
-
-export interface OCRResult {
-  text: string;
-  confidence: number;
-  boundingBox?: {
-    vertices: Array<{x: number, y: number}>
-  };
-}
-
-/**
- * Process image using Google Cloud Vision OCR
- * @param imageBase64 - Base64 encoded image
- * @returns Extracted text with confidence scores
- */
-export const processImageOCR = async (imageBase64: string): Promise<OCRResult[]> => {
-  try {
-    const response = await axios.post(
-      `${VISION_API_URL}?key=${GOOGLE_CLOUD_VISION_API_KEY}`,
-      {
-        requests: [
-          {
-            image: {
-              content: imageBase64
-            },
-            features: [
-              {
-                type: 'TEXT_DETECTION',
-                maxResults: 10
-              }
-            ]
-          }
-        ]
-      }
-    );
-
-    if (!response.data.responses[0].textAnnotations) {
-      return [];
-    }
-
-    // Extract text annotations from response
-    const textAnnotations = response.data.responses[0].textAnnotations;
-    
-    // First result contains full text, following results are individual words/blocks
-    const results: OCRResult[] = textAnnotations.map(annotation => ({
-      text: annotation.description,
-      confidence: annotation.confidence || 0,
-      boundingBox: annotation.boundingPoly
-    }));
-
-    return results;
-  } catch (error) {
-    console.error('Error processing image with Google Cloud Vision:', error);
-    throw error;
-  }
-};
-
 /**
  * Extract product information from OCR results
  * @param ocrResults - Results from OCR processing
@@ -245,130 +157,11 @@ const guessCategory = (text) => { /* implementation */ };
 
 The application uses Expo Camera for capturing product images, now with integrated OCR processing:
 
-```typescript
-// components/camera/ProductCamera.tsx
-import React, { useState, useRef, useCallback } from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import { Camera } from 'expo-camera';
-import { Text, IconButton, ActivityIndicator } from 'react-native-paper';
-import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
-import { processImageOCR, extractProductInfo } from '../../services/vision/visionService';
-import { useDispatch } from 'react-redux';
-import { setOcrResults } from '../../store/slices/ocrSlice';
-
-export const ProductCamera = ({ onCapture, navigation }) => {
-  const [hasPermission, setHasPermission] = useState(null);
-  const [processing, setProcessing] = useState(false);
-  const cameraRef = useRef(null);
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, []);
-
-  const takePicture = async () => {
-    if (cameraRef.current) {
-      try {
-        setProcessing(true);
-        
-        // Take picture
-        const photo = await cameraRef.current.takePictureAsync();
-        
-        // Optimize image for processing
-        const optimizedImage = await ImageManipulator.manipulateAsync(
-          photo.uri,
-          [{ resize: { width: 1000 } }],
-          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-        );
-        
-        // Process with Google Cloud Vision
-        const ocrResults = await processImageOCR(optimizedImage.base64);
-        
-        // Extract product information from OCR results
-        const productInfo = extractProductInfo(ocrResults);
-        
-        // Store results in Redux
-        dispatch(setOcrResults({ 
-          ocrResults, 
-          productInfo,
-          imageUri: optimizedImage.uri 
-        }));
-        
-        // Navigate to results screen
-        navigation.navigate('OCRResults');
-        
-        // Also pass to callback if needed
-        onCapture && onCapture({
-          imageUri: optimizedImage.uri,
-          ocrResults,
-          productInfo
-        });
-        
-      } catch (error) {
-        console.error('Error processing image:', error);
-        alert('Error processing image. Please try again.');
-      } finally {
-        setProcessing(false);
-      }
-    }
-  };
-
-  if (hasPermission === null) {
-    return <View />;
-  }
-  if (hasPermission === false) {
-    return <Text>No access to camera</Text>;
-  }
-
-  return (
-    <View style={styles.container}>
-      <Camera style={styles.camera} ref={cameraRef} type={Camera.Constants.Type.back}>
-        <View style={styles.buttonContainer}>
-          {processing ? (
-            <ActivityIndicator size="large" color="#fff" />
-          ) : (
-            <TouchableOpacity style={styles.button} onPress={takePicture}>
-              <IconButton icon="camera" size={32} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </Camera>
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  camera: {
-    flex: 1,
-  },
-  buttonContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    margin: 20,
-  },
-  button: {
-    alignSelf: 'flex-end',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 50,
-    padding: 15,
-  },
-});
-```
 
 ## Component Breakdown
 
 ### LoginComponent
-Handles user authentication with the `/dev_auth` endpoint.
+Handles user authentication with the `/login-with-token` endpoint.
 
 ### OCRComponent
 Manages image capture and processes OCR using Google Cloud Vision API directly in the frontend.
@@ -475,18 +268,6 @@ const AuthProvider = ({ type = 'developer', children }) => {
 ## Environment Variables
 
 The application uses environment variables for configuration:
-
-```
-# .env.example
-API_URL=http://localhost:8000
-AUTH_ENDPOINT=/dev_login
-PRODUCTS_ENDPOINT=/products
-ENABLE_CAMERA=true
-LOG_LEVEL=info
-SENTRY_DSN=https://your-sentry-dsn
-STORAGE_PREFIX=storage_app_
-GOOGLE_CLOUD_VISION_API_KEY=your-google-cloud-vision-api-key
-```
 
 Usage with the `react-native-dotenv` package:
 

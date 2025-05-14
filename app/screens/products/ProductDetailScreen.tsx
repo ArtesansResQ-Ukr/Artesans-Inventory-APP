@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, 
   StyleSheet, 
@@ -21,7 +21,8 @@ import {
   Portal,
   List,
   Chip,
-  Menu
+  Menu,
+  Banner
 } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -91,6 +92,14 @@ const ProductDetailScreen = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [userGroup, setUserGroup] = useState<Group | null>(null);
   const [selectedGroupLabel, setSelectedGroupLabel] = useState('Global (All Groups)');
+
+  // Check if product is expired
+  const isExpired = useMemo(() => {
+    if (!product?.expiration_date) return false;
+    const today = new Date();
+    const expirationDate = new Date(product.expiration_date);
+    return expirationDate <= today;
+  }, [product?.expiration_date]);
 
   // Fetch product details
   useEffect(() => {
@@ -310,10 +319,28 @@ const ProductDetailScreen = () => {
           <View style={{ width: 24 }} />
         </View>
 
+        {/* Expiration Banner */}
+        {isExpired && (
+          <Banner
+            visible={true}
+            icon={({ size }) => (
+              <Ionicons 
+                name="alert-circle" 
+                size={24} 
+                color={colors.error}
+              />
+            )}
+            style={styles.expiredBanner}
+            contentStyle={styles.expiredBannerContent}
+          >
+            <Text style={styles.expiredBannerText}>This product has expired</Text>
+          </Banner>
+        )}
+
         {/* Product Details Card */}
-        <Card style={styles.card}>
+        <Card style={[styles.card, isExpired && styles.expiredCard]}>
           <Card.Content>
-            <Title style={styles.productName}>{product?.name}</Title>
+            <Title style={[styles.productName, isExpired && styles.expiredText]}>{product?.name}</Title>
             
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
@@ -323,7 +350,13 @@ const ProductDetailScreen = () => {
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Expiration Date</Text>
-                <Chip icon="calendar" style={styles.expirationChip}>
+                <Chip 
+                  icon="calendar" 
+                  style={[
+                    styles.expirationChip,
+                    isExpired && styles.expiredChip
+                  ]}
+                >
                   {product?.expiration_date ? formatDate(product.expiration_date) : 'N/A'}
                 </Chip>
               </View>
@@ -702,6 +735,32 @@ const styles = StyleSheet.create({
   historyGroupChip: {
     marginVertical: 4,
     backgroundColor: colors.primary + '20',
+  },
+  expiredBanner: {
+    marginBottom: 10,
+    backgroundColor: colors.error + '15',
+  },
+  expiredBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  expiredBannerIcon: {
+    marginRight: 8,
+  },
+  expiredBannerText: {
+    color: colors.error,
+  },
+  expiredCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.error,
+  },
+  expiredText: {
+    color: colors.error,
+    fontWeight: 'bold',
+  },
+  expiredChip: {
+    backgroundColor: colors.error + '20',
+    borderColor: colors.error,
   },
 });
 

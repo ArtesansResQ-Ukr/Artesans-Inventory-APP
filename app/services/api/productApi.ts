@@ -438,4 +438,19 @@ export const exportProductsToExcel = async () => {
   }
 };
 
-
+export const ifProductExpired = async (productUuid: string) => {
+  try {
+    const response = await apiClient.post(`/products/${productUuid}/if-expired`);
+    return response.data.is_expired;
+  } catch (error: unknown) {
+    if (error instanceof AxiosError && error.response) {
+      console.error('Failed to check if product is expired:', error);
+      const backend_message = error.response.data.detail || 'An unknown error occurred';
+      Alert.alert('Error', backend_message);
+      throw backend_message;
+    } else {
+      console.error('Failed to check if product is expired:', error);
+      throw new Error;
+    }
+  }
+}

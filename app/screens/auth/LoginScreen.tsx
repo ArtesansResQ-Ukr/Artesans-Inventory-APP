@@ -224,6 +224,7 @@ const LoginScreen: React.FC = () => {
               <TouchableOpacity
                 onPress={navigateToBiometricAuth}
                 style={styles.biometricButton}
+                disabled={true}
               >
                 <Ionicons name="finger-print" size={18} color={colors.white} style={styles.biometricIcon}></Ionicons>
                 <Text style={styles.biometricButtonText}>Login with Biometrics</Text>

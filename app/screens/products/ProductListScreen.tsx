@@ -25,6 +25,8 @@ const ProductListScreen = () => {
   const [exporting, setExporting] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [expiredProducts, setExpiredProducts] = useState<{[key: string]: boolean}>({});
+  const [expirationFilter, setExpirationFilter] = useState<'expired' | 'not-expired' | null>(null);
 
   // Fetch products on component mount
   useEffect(() => {
@@ -32,8 +34,65 @@ const ProductListScreen = () => {
     fetchGroups();
   }, []);
 
+  // Check for expired products
+  useEffect(() => {
+    if (products.length > 0) {
+      checkExpiredProducts(products);
+    }
+  }, [products]);
+
+  // Apply all filters whenever filter conditions change
+  useEffect(() => {
+    applyFilters();
+  }, [searchQuery, selectedGroup, expirationFilter, expiredProducts]);
+
+  // Check which products are expired using local date comparison
+  const checkExpiredProducts = (productList: any[]) => {
+    const today = new Date();
+    const expiredMap: {[key: string]: boolean} = {};
+    
+    productList.forEach(product => {
+      if (product.expiration_date) {
+        const expirationDate = new Date(product.expiration_date);
+        expiredMap[product.uuid] = expirationDate <= today;
+      } else {
+        expiredMap[product.uuid] = false;
+      }
+    });
+    
+    setExpiredProducts(expiredMap);
+  };
+
+  // Apply all current filters (search, group, expiration)
+  const applyFilters = () => {
+    let filtered = products;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      filtered = fuzzySearch({
+        list: filtered,
+        keys: ['name', 'ocr_text', 'category'],
+        query: searchQuery,
+      });
+    }
+    
+    // Apply group filter
+    if (selectedGroup) {
+      filtered = filtered.filter(p => p.group_uuid === selectedGroup);
+    }
+    
+    // Apply expiration filter
+    if (expirationFilter === 'expired') {
+      filtered = filtered.filter(p => expiredProducts[p.uuid]);
+    } else if (expirationFilter === 'not-expired') {
+      filtered = filtered.filter(p => !expiredProducts[p.uuid]);
+    }
+    
+    setFilteredProducts(filtered);
+  };
+
   // Fetch products from API
-  const fetchProducts = async ( productUuid?: string) => {
+  const fetchProducts = async (productUuid?: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -77,29 +136,6 @@ const ProductListScreen = () => {
   // Handle search query changes
   const onChangeSearch = (query: string) => {
     setSearchQuery(query);
-
-    if (query === '') {
-      // Reset to original filtered by group
-      if (selectedGroup) {
-      setFilteredProducts(products.filter(p => p.group_uuid === selectedGroup));
-    } else {
-      setFilteredProducts(products);
-    }
-    return;
-  } else {
-      // Filter products by name, category, or OCR text
-      const matched = fuzzySearch({
-        list: products,
-        keys: ['name', 'ocr_text', 'category'],
-        query,
-      });
-    
-      const filtered = selectedGroup
-        ? matched.filter(p => p.group_uuid === selectedGroup)
-        : matched;
-    
-      setFilteredProducts(filtered);
-    }
   };
 
   // Handle group filter selection
@@ -107,22 +143,20 @@ const ProductListScreen = () => {
     if (selectedGroup === groupUuid) {
       // Deselect group if already selected
       setSelectedGroup(null);
-      setFilteredProducts(
-        searchQuery.trim() ? 
-          products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())) : 
-          products
-      );
     } else {
       // Select new group
       setSelectedGroup(groupUuid);
-      setFilteredProducts(
-        products.filter(p => {
-          const matchesGroup = p.group_uuid === groupUuid;
-          const matchesSearch = !searchQuery.trim() || 
-            p.name.toLowerCase().includes(searchQuery.toLowerCase());
-          return matchesGroup && matchesSearch;
-        })
-      );
+    }
+  };
+
+  // Handle expiration filter selection
+  const handleExpirationFilter = (filter: 'expired' | 'not-expired') => {
+    if (expirationFilter === filter) {
+      // Deselect filter if already selected
+      setExpirationFilter(null);
+    } else {
+      // Select new filter
+      setExpirationFilter(filter);
     }
   };
 
@@ -143,19 +177,39 @@ const ProductListScreen = () => {
   };
 
   // Render product item
-  const renderProductItem = ({ item }: { item: any }) => (
-    <Card style={styles.card} onPress={() => navigation.navigate('ProductDetail', { productUuid: item.uuid , userUuid: item.user_uuid })}>
-      <Card.Content>
-        <Text variant="titleLarge" style={styles.productTitle}>{item.name}</Text>
-        <View style={styles.productDetails}>
-          <Text variant="bodyMedium">Category: {item.category}</Text>
-          <Text variant="bodyMedium">Total Quantity: {item.quantity}</Text>
-          <Text variant="bodyMedium">Expires: {item.expiration_date}</Text>
-        </View>
-        {item.comments && <Text variant="bodySmall" style={styles.notes}>Notes: {item.comments}</Text>}
-      </Card.Content>
-    </Card>
-  );
+  const renderProductItem = ({ item }: { item: any }) => {
+    const isExpired = expiredProducts[item.uuid] || false;
+    
+    return (
+      <Card 
+        style={[
+          styles.card, 
+          isExpired && styles.expiredCard
+        ]} 
+        onPress={() => navigation.navigate('ProductDetail', { productUuid: item.uuid , userUuid: item.user_uuid })}
+      >
+        <Card.Content>
+          <Text 
+            variant="titleLarge" 
+            style={[styles.productTitle, isExpired && styles.expiredText]}
+          >
+            {item.name}
+          </Text>
+          <View style={styles.productDetails}>
+            <Text variant="bodyMedium">Category: {item.category}</Text>
+            <Text variant="bodyMedium">Total Quantity: {item.quantity}</Text>
+            <Text 
+              variant="bodyMedium" 
+              style={isExpired ? styles.expiredText : {}}
+            >
+              Expires: {item.expiration_date}
+            </Text>
+          </View>
+          {item.comments && <Text variant="bodySmall" style={styles.notes}>Notes: {item.comments}</Text>}
+        </Card.Content>
+      </Card>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -194,7 +248,7 @@ const ProductListScreen = () => {
                   styles.chip,
                   selectedGroup === item ? styles.selectedChip : {}
                 ]}
-                selectedColor={colors.white}
+                selectedColor={colors.primary}
                 selected={selectedGroup === item}
                 onPress={() => handleGroupFilter(item)}
                 mode="outlined"
@@ -208,6 +262,37 @@ const ProductListScreen = () => {
           />
         </View>
       )}
+      
+      {/* Expiration filter chips */}
+      <View style={styles.chipContainer}>
+        <Text variant="bodySmall" style={styles.filterLabel}>Filter by expiration:</Text>
+        <View style={styles.chipRow}>
+          <Chip 
+            style={[
+              styles.chip,
+              expirationFilter === 'expired' ? styles.expiredChip : {}
+            ]}
+            selectedColor={colors.primary}
+            selected={expirationFilter === 'expired'}
+            onPress={() => handleExpirationFilter('expired')}
+            mode="outlined"
+          >
+            Expired
+          </Chip>
+          <Chip 
+            style={[
+              styles.chip,
+              expirationFilter === 'not-expired' ? styles.notExpiredChip : {}
+            ]}
+            selectedColor={colors.primary}
+            selected={expirationFilter === 'not-expired'}
+            onPress={() => handleExpirationFilter('not-expired')}
+            mode="outlined"
+          >
+            Not Expired
+          </Chip>
+        </View>
+      </View>
       
       <Divider style={styles.divider} />
       
@@ -274,6 +359,10 @@ const styles = StyleSheet.create({
   chipContainer: {
     marginVertical: 8,
   },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
   filterLabel: {
     marginBottom: 4,
     color: textColors.secondary,
@@ -286,6 +375,14 @@ const styles = StyleSheet.create({
   selectedChip: {
     backgroundColor: colors.primary,
   },
+  expiredChip: {
+    backgroundColor: colors.error,
+    borderColor: colors.error,
+  },
+  notExpiredChip: {
+    backgroundColor: colors.success || '#4CAF50',
+    borderColor: colors.success || '#4CAF50',
+  },
   divider: {
     marginVertical: 8,
     backgroundColor: colors.gray,
@@ -297,6 +394,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderLeftWidth: 4,
     borderLeftColor: colors.primary,
+  },
+  expiredCard: {
+    borderLeftColor: colors.error,
+    borderLeftWidth: 4,
+  },
+  expiredText: {
+    color: colors.error,
   },
   list: {
     paddingBottom: 16,

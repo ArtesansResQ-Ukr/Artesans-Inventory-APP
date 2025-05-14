@@ -16,16 +16,20 @@ export const getBaseUrl = (): string => {
     console.log('Using API URL from Expo config:', expoConfig);
     return expoConfig;
   }
-
-  // Platform-specific defaults
-  if (Platform.OS === 'android') {
-    // Special case for Android emulators - 10.0.2.2 is the host machine
-    return 'http://10.0.2.2:8000';
-  } else if (Platform.OS === 'ios') {
-    // On iOS simulator, localhost points to the host machine
-    return 'http://localhost:8000';
-  } else {
+  if (__DEV__) {
+    // Platform-specific defaults
+    if (Platform.OS === 'android') {
+      // Special case for Android emulators - 10.0.2.2 is the host machine
+      return 'http://10.0.2.2:8000';
+    } else if (Platform.OS === 'ios') {
+      // On iOS simulator, localhost points to the host machine
+      return 'http://localhost:8000';
+    } else {
     // Web or other platforms
+      return API_URL || 'http://localhost:8000';
+    }
+  }
+  else {
     return API_URL || 'http://localhost:8000';
   }
 };

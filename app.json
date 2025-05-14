@@ -37,7 +37,7 @@
     },
     "web": {
       "bundler": "metro",
-      "proxy": "http://192.168.0.14:8000"
+      "proxy": "https://artesans-storage-api.onrender.com"
     },
     "plugins": [
       [
